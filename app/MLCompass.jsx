@@ -228,8 +228,8 @@ export default function MLCompass() {
         {stage === 0 && (
           <>
           <p className="text-base md:text-lg mt-4 mb-5 max-w-3xl" style={{ color: C.inkSoft }}>
-            A pre-flight checklist for ML projects — it helps you catch leakage, wrong metrics,
-            validation mistakes, and poor model framing <b style={{ color: C.ink }}>before</b> training.
+            A pre-flight checklist for ML projects. Catch leakage, metric mistakes,
+            validation issues, and weak framing <b style={{ color: C.ink }}>before you train</b>.
           </p>
           <section className="grid md:grid-cols-5 gap-6 mt-4">
             <div className="md:col-span-3 rounded-2xl p-7" style={{ background: C.panel, border: `1px solid ${C.line}` }}>
