@@ -11,10 +11,13 @@
 
 const DEFAULT_ENDPOINT = "/api/explain";
 const DEFAULT_TIMEOUT_MS = 8000;
-// Small open model is plenty for rewording. Verify the id against WebLLM's prebuilt list.
-// Alternatives: "Llama-3.2-3B-Instruct-q4f16_1-MLC" (nicer prose, ~2 GB), "gemma-2-2b-it-q4f16_1-MLC".
-const DEFAULT_BROWSER_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+// On-device model for the browser tier. 3B gives nicer prose; swap to a smaller id
+// here for faster loads. Verify ids against WebLLM's prebuilt list.
+// Alternatives: "Llama-3.2-1B-Instruct-q4f16_1-MLC", "gemma-2-2b-it-q4f16_1-MLC",
+// "Phi-3.5-mini-instruct-q4f16_1-MLC".
+const DEFAULT_BROWSER_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
 
+// Server (Workers AI) tier rephrases all sections at once and returns JSON.
 const SYSTEM = [
   "You rephrase machine-generated ML recommendations into clear, warm, plain English.",
   "STRICT RULES:",
@@ -23,6 +26,20 @@ const SYSTEM = [
   "- Return ONLY a JSON array. No prose, no markdown fences.",
   '- Each element: {"id": <unchanged id>, "decision": <reworded>, "reason": <reworded>, "caveat": <reworded or "">}.',
   "- Include every id from the input, unchanged.",
+].join("\n");
+
+// On-device tier rephrases ONE section per call in plain text (no JSON). Small models
+// produce plain lines far more reliably than strict JSON, and a per-section failure
+// can't poison the others.
+const SECTION_SYSTEM = [
+  "You reword one machine-generated ML recommendation into clear, warm, plain English.",
+  "RULES:",
+  "- Keep every model name, metric, number, and column name exactly as given.",
+  "- Reword only for clarity and tone. 1–2 sentences per field.",
+  "- Output EXACTLY these three lines and nothing else (no JSON, no extra prose):",
+  "DECISION: <reworded decision>",
+  "WHY: <reworded reason>",
+  'CAVEAT: <reworded caveat, or "-" if none>',
 ].join("\n");
 
 /**
@@ -55,8 +72,7 @@ export async function explainSections(sections, opts = {}) {
       // Emit immediately: the WebLLM library import + cache check below are slow, and
       // without this the UI would stay frozen on the stale "Checking Workers AI…" label.
       onStatus({ tier: "on-device", phase: "init" });
-      const arr = await tryBrowser(browserModel, payload, (s) => onStatus({ tier: "on-device", ...s }));
-      const merged = mergeRephrased(sections, arr);
+      const merged = await tryBrowser(browserModel, sections, (s) => onStatus({ tier: "on-device", ...s }));
       if (merged) return { sections: merged, source: "on-device" };
     } catch { /* fall through to deterministic */ }
   }
@@ -82,31 +98,66 @@ async function tryServer(endpoint, timeoutMs, payload) {
 
 let enginePromise = null;   // load the on-device model once per session
 let engineReady = false;
-async function tryBrowser(model, payload, onStatus) {
+
+// Returns merged sections (originals reworded where the model gave usable text) or null
+// if nothing could be reworded. Rephrases one section per call in plain text.
+async function tryBrowser(model, sections, onStatus) {
   const webllm = await import("@mlc-ai/web-llm");   // requires `npm i @mlc-ai/web-llm`; if absent → throws → fallback
-  if (engineReady && enginePromise) {
-    onStatus?.({ phase: "ready", model });          // already loaded this session — no spurious "0%"
-  } else if (!enginePromise) {
+  if (!engineReady || !enginePromise) {
     let cached = false;
     try { cached = webllm.hasModelInCache ? await webllm.hasModelInCache(model) : false; } catch { cached = false; }
     onStatus?.({ phase: cached ? "loading" : "downloading", model, progress: 0 });
-    enginePromise = webllm.CreateMLCEngine(model, {
-      initProgressCallback: (r) => onStatus?.({
-        phase: cached ? "loading" : "downloading",
-        model,
-        progress: typeof r?.progress === "number" ? r.progress : undefined,
-      }),
-    });
+    if (!enginePromise) {
+      enginePromise = webllm.CreateMLCEngine(model, {
+        initProgressCallback: (r) => onStatus?.({
+          phase: cached ? "loading" : "downloading",
+          model,
+          progress: typeof r?.progress === "number" ? r.progress : undefined,
+        }),
+      });
+    }
   }
   const engine = await enginePromise;
   engineReady = true;
-  onStatus?.({ phase: "ready", model });
-  const reply = await engine.chat.completions.create({
-    messages: [{ role: "system", content: SYSTEM }, { role: "user", content: "Rephrase these sections:\n" + JSON.stringify(payload) }],
-    temperature: 0.3,
-    max_tokens: 2048,   // headroom: ~9 sections × 3 fields; too low truncates the JSON
-  });
-  return extractJsonArray(reply?.choices?.[0]?.message?.content || "");
+
+  let reworded = 0;
+  const out = [];
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    onStatus?.({ phase: "rephrasing", model, index: i + 1, total: sections.length });
+    let merged = s;
+    try {
+      const reply = await engine.chat.completions.create({
+        messages: [{ role: "system", content: SECTION_SYSTEM }, { role: "user", content: sectionToText(s) }],
+        temperature: 0.3,
+        max_tokens: 256,   // one short section — no room to run away or truncate mid-array
+      });
+      merged = applyRephrase(s, reply?.choices?.[0]?.message?.content || "");
+      if (merged.decision !== s.decision || merged.reason !== s.reason || merged.caveat !== s.caveat) reworded++;
+    } catch { merged = s; }   // a single bad section keeps its deterministic text
+    out.push(merged);
+  }
+  return reworded ? out : null;
+}
+
+function sectionToText(s) {
+  return `DECISION: ${s.decision}\nWHY: ${s.reason}\nCAVEAT: ${s.caveat || "-"}`;
+}
+
+// Pull DECISION/WHY/CAVEAT lines from a plain-text reply; keep the original on anything
+// missing, blank, or "-". Decisions are never invented — only reworded text replaces text.
+function applyRephrase(s, text) {
+  const grab = (label) => {
+    const m = text.match(new RegExp("^\\s*" + label + "\\s*:\\s*(.+)$", "im"));
+    return m ? m[1].trim() : "";
+  };
+  const keep = (v, fb) => (v && v.trim() && v.trim() !== "-" ? v.trim() : fb);
+  return {
+    ...s,
+    decision: keep(grab("DECISION"), s.decision),
+    reason: keep(grab("WHY"), s.reason),
+    caveat: s.caveat ? keep(grab("CAVEAT"), s.caveat) : "",
+  };
 }
 
 function hasWebGPU() { return typeof navigator !== "undefined" && "gpu" in navigator; }
@@ -126,19 +177,6 @@ export function canRunBrowserLLM() {
   // deviceMemory is in GB (Chromium only); skip clearly under-provisioned machines.
   if (typeof navigator.deviceMemory === "number" && navigator.deviceMemory < 4) return false;
   return true;
-}
-
-function extractJsonArray(text) {
-  const a = text.indexOf("[");
-  if (a === -1) return null;
-  const parse = (s) => { try { const v = JSON.parse(s); return Array.isArray(v) ? v : null; } catch { return null; } };
-  const b = text.lastIndexOf("]");
-  if (b > a) { const v = parse(text.slice(a, b + 1)); if (v) return v; }
-  // Salvage a truncated reply (small models often run out of tokens mid-array):
-  // close the array after the last complete object so we keep what did come back.
-  const lastObj = text.lastIndexOf("}");
-  if (lastObj > a) { const v = parse(text.slice(a, lastObj + 1) + "]"); if (v) return v; }
-  return null;
 }
 
 // Only text fields are replaced; id / title / tone / order come from the originals.
