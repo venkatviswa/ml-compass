@@ -28,25 +28,15 @@ const SYSTEM = [
   "- Include every id from the input, unchanged.",
 ].join("\n");
 
-// On-device tier rephrases ONE section per call in plain text (no JSON). Small models
-// produce plain lines far more reliably than strict JSON, and a per-section failure
-// can't poison the others. A one-shot example keeps the format from drifting.
+// On-device tier rewords ONLY the rationale ("Why") of one section in plain text.
+// The decision and caveat are the precise recommendation, so we keep them verbatim —
+// a small model is too weak to paraphrase them without dropping model names/metrics or
+// corrupting facts. Rewording just the rationale keeps the bearing correct.
 const SECTION_SYSTEM = [
-  "You rewrite one machine-generated ML recommendation in clear, friendly plain English.",
-  "Keep every model name, metric, number, and column name exactly as given.",
-  "Reply with EXACTLY these three lines and nothing else. Do NOT repeat the words DECISION, WHY, or CAVEAT inside your sentences:",
-  "DECISION: <one short sentence>",
-  "WHY: <one or two short sentences>",
-  'CAVEAT: <one short sentence, or "-" if the input caveat is "-">',
-  "",
-  "Example input:",
-  "DECISION: Supervised regression",
-  "WHY: A labeled continuous numeric target.",
-  "CAVEAT: -",
-  "Example output:",
-  "DECISION: This is a regression problem.",
-  "WHY: We're predicting a continuous number, so regression fits.",
-  "CAVEAT: -",
+  "You rewrite the rationale of one ML recommendation in clear, friendly plain English.",
+  "Keep every model name, metric, number, and column name exactly as written, and do NOT change the meaning.",
+  "Keep it to one or two short sentences.",
+  "Reply with ONLY the rewritten rationale — no labels, no preamble, no quotes, no extra lines.",
 ].join("\n");
 
 /**
@@ -158,32 +148,41 @@ async function tryBrowser(model, sections, onStatus, shouldStop = () => false) {
 }
 
 function sectionToText(s) {
-  return `DECISION: ${s.decision}\nWHY: ${s.reason}\nCAVEAT: ${s.caveat || "-"}`;
+  return `Recommendation: ${s.decision}\nRationale: ${s.reason}\n\nRewrite the rationale:`;
 }
 
-// Pull DECISION/WHY/CAVEAT lines from a plain-text reply; keep the original on anything
-// missing, blank, "-", or implausible. The sanity guard rejects run-on / merged output
-// (e.g. a model that crams decision+why+"Caveat:" onto one line) so garbage never shows.
+const STOP = new Set(("the a an and or of to in on for with is are be was were it its this that these those we you our your they "
+  + "their as at by from will would can could may might not no into over once then than so need needs also only just per "
+  + "where which what when how each any all if else do does done has have had which while because about your you're we're it's").split(/\s+/));
+
+// Meaningful words (≥3 chars, non-stopword) plus acronyms/hyphenated terms and numbers.
+function significantTokens(str) {
+  return (String(str).toLowerCase().match(/[a-z0-9][a-z0-9\-²]{2,}/g) || []).filter((w) => !STOP.has(w));
+}
+// A faithful rephrase keeps most of the original's meaningful words; an over-summary or a
+// fact-drift (e.g. "balanced classes" → "multiple classes") drops them. Require ~45% overlap.
+function preservesContent(original, candidate) {
+  const orig = significantTokens(original);
+  if (orig.length < 3) return true;   // too short to judge — let length/label guards decide
+  const cand = new Set(significantTokens(candidate));
+  const kept = orig.filter((t) => cand.has(t)).length;
+  return kept / orig.length >= 0.45;
+}
+
+// The model returns just the reworded rationale. Keep decision + caveat verbatim (those
+// are the precise recommendation). Accept the new rationale only if it's clean and faithful
+// (keeps the original's key terms); otherwise keep the original — never corrupt the bearing.
 function applyRephrase(s, text) {
-  const grab = (label) => {
-    const m = text.match(new RegExp("^\\s*" + label + "\\s*:\\s*(.+)$", "im"));
-    return m ? m[1].trim() : "";
-  };
-  // candidate is accepted only if it's non-empty, not a placeholder, doesn't echo the
-  // field labels, and isn't wildly longer than the original (a sign it merged fields).
-  const sane = (candidate, original, maxFactor) => {
-    const v = (candidate || "").trim();
-    if (!v || v === "-") return original;
-    if (/\b(decision|why|caveat)\s*:/i.test(v)) return original;   // leaked a field label
-    if (v.length > original.length * maxFactor + 40) return original;
-    return v;
-  };
-  return {
-    ...s,
-    decision: sane(grab("DECISION"), s.decision, 2),
-    reason: sane(grab("WHY"), s.reason, 2.5),
-    caveat: s.caveat ? sane(grab("CAVEAT"), s.caveat, 2.5) : "",
-  };
+  let v = (text || "").trim();
+  v = v.replace(/^(rationale|why|answer|decision)\s*:\s*/i, "").trim();   // strip a stray label
+  v = v.replace(/^["'“]+|["'”]+$/g, "").trim();                           // strip wrapping quotes
+  v = v.split(/\n{2,}/)[0].trim();                                        // first paragraph only
+  const ok =
+    v &&
+    !/\b(decision|why|caveat|rationale)\s*:/i.test(v) &&                  // didn't echo labels
+    v.length <= s.reason.length * 2.5 + 60 &&                            // not a run-on
+    preservesContent(s.reason, v);                                        // kept the key facts
+  return { ...s, reason: ok ? v : s.reason };   // decision & caveat unchanged
 }
 
 function hasWebGPU() { return typeof navigator !== "undefined" && "gpu" in navigator; }
