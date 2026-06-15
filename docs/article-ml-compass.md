@@ -111,6 +111,12 @@ Twenty datasets, seventy-one assertions, zero failures — and when I add a rule
 
 Analysts, architects, admins, and data teams who are comfortable in AutoML or a notebook but want a structured sanity check before they model. It isn't trying to replace a data scientist — it's trying to make the first modeling conversation more defensible.
 
+**Where it earns its keep:**
+
+- **Architects working alongside ML engineers.** An architect rarely owns the model, but is on the hook for whether the project is framed right. ML Compass gives both sides a shared, written artifact — task, metric, validation, leakage — to align on *before* any code is written. The architect can interrogate the dataset and challenge the setup without having to be the ML specialist in the room, and the engineer starts from a defensible brief instead of a vague ask.
+- **Catching errors early — and making the client aware.** The cheapest place to find a leaked column or the wrong success metric is the whiteboard, not week three of model iteration. A bearing you can hand to a client turns "trust us" into "here's what we checked, here's the risk we found, and here's the caveat" — which is also how you set honest expectations before anyone has seen a number.
+- **Platforms where you push data straight to a model builder.** This is the sharpest use case. When you load a dataset into a point-and-click trainer — Salesforce's Einstein/Model Builder, and similar tooling in Snowflake or Databricks — the platform will happily train on whatever you give it. And even where automated training exists, it rarely forces the *pre-modeling* questions: is this column actually available at prediction time, is accuracy the right metric on a 5%-positive class, is a random split honest for time-ordered data? ML Compass is the checklist that runs in exactly that gap — before the platform turns your setup, mistakes and all, into a deployed model.
+
 ## Try it
 
 ML Compass is open source and runs free, entirely in your browser — nothing leaves your machine. Point it at your next dataset *before* you click Train. Try it on Titanic, the credit-card fraud set, a churn export, or your own CSV, and see whether the bearing matches your instinct — or catches something you'd have missed.
