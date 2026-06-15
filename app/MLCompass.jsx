@@ -147,7 +147,8 @@ export default function MLCompass() {
         if (s.tier === "workers-ai") { setLoadMsg("Checking Workers AI…"); return; }
         if (s.tier === "on-device") {
           const name = (s.model || "on-device model").replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ");
-          if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
+          if (s.phase === "init") setLoadMsg("No server explainer here — preparing the on-device model…");
+          else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~2 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
           else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
           else if (s.phase === "ready") setLoadMsg(`Using ${name} (on-device)…`);
         }

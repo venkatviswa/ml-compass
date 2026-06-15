@@ -52,6 +52,9 @@ export async function explainSections(sections, opts = {}) {
   // (and silently reloaded) under memory pressure, which would wipe the user's session.
   if (enableBrowserFallback && canRunBrowserLLM()) {
     try {
+      // Emit immediately: the WebLLM library import + cache check below are slow, and
+      // without this the UI would stay frozen on the stale "Checking Workers AI…" label.
+      onStatus({ tier: "on-device", phase: "init" });
       const arr = await tryBrowser(browserModel, payload, (s) => onStatus({ tier: "on-device", ...s }));
       const merged = mergeRephrased(sections, arr);
       if (merged) return { sections: merged, source: "on-device" };
