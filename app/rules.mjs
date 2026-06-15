@@ -144,7 +144,7 @@ export function recommend(facts) {
 
   const dt = usableCols.filter((c) => c.dtype === "datetime").map((c) => c.name);
   const fe = [];
-  if (dt.length) fe.push(`Datetime (${dt.join(", ")}): hour, day-of-week, is_weekend, cyclical sin/cos.`);
+  if (dt.length) fe.push(`Datetime (${dt.join(", ")}): recency (days since), gaps between dates (tenure), day-of-week, is_weekend, cyclical sin/cos for any time-of-day.`);
   if (highCard.length) fe.push("High-card categoricals: frequency or target encoding fit inside CV folds.");
   fe.push("Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense.");
   const missCols = usableCols.filter((c) => c.missingPct > 0).map((c) => c.name);
