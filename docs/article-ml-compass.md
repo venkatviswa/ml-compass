@@ -4,6 +4,8 @@
 
 > **TL;DR** — The expensive ML mistakes happen *before* you train a model, and the no-code platforms rarely force the questions that catch them. ML Compass profiles your dataset, asks the few things the data can't answer, and returns a reasoned plan — task, metric, validation, and a leakage audit — with a *why* behind every call. Deterministic (rules decide, the LLM only rephrases), private (runs in your browser), open source, and regression-tested against 20 datasets.
 
+I built a small working prototype here: **[ML Compass](https://venkatviswa.github.io/ml-compass)**. It follows a simple flow — frame the business decision, profile the dataset, answer a few context questions, then receive a deterministic *bearing* with reasons and caveats.
+
 ---
 
 ## The first hour with a new dataset
@@ -113,7 +115,8 @@ Analysts, architects, admins, and data teams who are comfortable in AutoML or a 
 
 ML Compass is open source and runs free, entirely in your browser — nothing leaves your machine. Point it at your next dataset *before* you click Train. Try it on Titanic, the credit-card fraud set, a churn export, or your own CSV, and see whether the bearing matches your instinct — or catches something you'd have missed.
 
-**Repo and live demo: github.com/venkatviswa/ml-compass**
+**Try the prototype: [venkatviswa.github.io/ml-compass](https://venkatviswa.github.io/ml-compass)**
+**Read the rules and tests: [GitHub repo](https://github.com/venkatviswa/ml-compass)**
 
 AutoML made training easier. ML Compass is my attempt to make the step *before* training harder to get wrong.
 

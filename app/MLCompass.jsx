@@ -226,6 +226,11 @@ export default function MLCompass() {
       <main className="max-w-5xl mx-auto px-5 pb-20">
         {/* STAGE 0 — FRAME */}
         {stage === 0 && (
+          <>
+          <p className="text-base md:text-lg mt-4 mb-5 max-w-3xl" style={{ color: C.inkSoft }}>
+            A pre-flight checklist for ML projects — it helps you catch leakage, wrong metrics,
+            validation mistakes, and poor model framing <b style={{ color: C.ink }}>before</b> training.
+          </p>
           <section className="grid md:grid-cols-5 gap-6 mt-4">
             <div className="md:col-span-3 rounded-2xl p-7" style={{ background: C.panel, border: `1px solid ${C.line}` }}>
               <h2 className="text-xl font-semibold mb-1" style={disp}>Frame the question</h2>
@@ -233,6 +238,9 @@ export default function MLCompass() {
               <textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={3}
                 placeholder="e.g. Show riders a reliable upfront fare at pickup, within $2 of the final price."
                 className="w-full rounded-xl p-3 text-sm outline-none" style={{ border: `1.5px solid ${C.line}`, background: C.paper }} />
+              <p className="text-xs mt-2" style={{ color: C.inkSoft }}>
+                Example: <i>“Predict which customers are likely to churn so retention teams can prioritize outreach.”</i>
+              </p>
               <div className="mt-6">
                 <h3 className="font-semibold text-sm mb-3" style={disp}>Then bring the data</h3>
                 <div className="flex flex-wrap gap-3">
@@ -255,6 +263,7 @@ export default function MLCompass() {
               <Btn primary disabled={!rows} onClick={() => setStage(1)}>Profile the data <ArrowRight size={16} /></Btn>
             </div>
           </section>
+          </>
         )}
 
         {/* STAGE 1 — PROFILE */}
