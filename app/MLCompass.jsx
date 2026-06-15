@@ -69,6 +69,14 @@ function Dial({ stage }) {
 }
 
 const STAGES = ["Frame", "Profile", "Questions", "Bearing"];
+// Plain-language gloss for each stage, shown on hover so the nautical terms stay
+// self-explanatory to a first-time visitor.
+const STAGE_HELP = {
+  Frame: "Frame — state the decision the prediction will drive, then load your data.",
+  Profile: "Profile — the app reads your dataset and reports the objective facts.",
+  Questions: "Questions — answer the few things the data can't reveal (~5 taps).",
+  Bearing: "Bearing — your recommended plan: task, metric, validation, and leakage risks.",
+};
 const EMPTY_ANSWERS = { modality: null, framing: null, timeDependent: null, needsProbs: null, regulated: null, interpretability: null, errorCost: null, unsupGoal: null };
 
 /* ---------------- main app ---------------- */
@@ -215,7 +223,7 @@ export default function MLCompass() {
           <div className="flex gap-1 mt-2">
             {STAGES.map((s, i) => (
               <div key={s} className="flex items-center gap-1">
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ ...mono, background: i === stage ? C.ink : i < stage ? C.goodBg : C.neuBg, color: i === stage ? "#fff" : i < stage ? C.good : C.inkSoft }}>{i < stage ? "✓ " : ""}{s}</span>
+                <span title={STAGE_HELP[s]} className="text-xs px-2 py-0.5 rounded-full cursor-help" style={{ ...mono, background: i === stage ? C.ink : i < stage ? C.goodBg : C.neuBg, color: i === stage ? "#fff" : i < stage ? C.good : C.inkSoft }}>{i < stage ? "✓ " : ""}{s}</span>
                 {i < 3 && <span style={{ color: C.line }}>—</span>}
               </div>
             ))}
@@ -258,6 +266,12 @@ export default function MLCompass() {
                 <li><b style={{ color: C.ink }}>Questions.</b> You answer only what the data can't reveal (~5 taps).</li>
                 <li><b style={{ color: C.ink }}>Bearing.</b> A deterministic rules engine — not an LLM guess — issues the recommendation with reasons and caveats.</li>
               </ol>
+              <div className="mt-5 pt-4 text-xs" style={{ borderTop: `1px solid ${C.line}`, color: C.inkSoft }}>
+                <b style={{ color: C.ink }}>Who it's for:</b> architects and ML engineers aligning before code, teams
+                catching leakage and metric mistakes early enough to flag them to a client, and anyone
+                pushing data straight into a model builder (Salesforce Einstein, Snowflake, Databricks)
+                that trains on whatever you feed it.
+              </div>
             </div>
             <div className="md:col-span-5 flex justify-end">
               <Btn primary disabled={!rows} onClick={() => setStage(1)}>Profile the data <ArrowRight size={16} /></Btn>
@@ -373,7 +387,7 @@ export default function MLCompass() {
           <section className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div>
-                <h2 className="text-2xl font-bold" style={disp}>Your bearing</h2>
+                <h2 className="text-2xl font-bold" style={disp}>Your bearing <span className="text-sm font-normal" style={{ color: C.inkSoft }}>— your recommended plan</span></h2>
                 <p className="text-sm" style={{ color: C.inkSoft }}>{fileName} · {prof.nRows}×{prof.nCols} · {resolvedModality} · target: <b style={mono}>{noTarget ? "none" : target}</b></p>
               </div>
               <div className="flex gap-2 items-center">
