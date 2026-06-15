@@ -10,9 +10,9 @@ const nextConfig = {
   output: "export",
   images: { unoptimized: true },   // next/image needs this in export mode
   reactStrictMode: true,
-  // If deploying to a GitHub Pages *project* site (username.github.io/repo),
-  // uncomment and set the repo name so asset paths resolve:
-  // basePath: "/ml-compass",
-  // assetPrefix: "/ml-compass/",
+  // Deploying to a GitHub Pages *project* site (username.github.io/ml-compass),
+  // so asset paths must be prefixed with the repo name:
+  basePath: "/ml-compass",
+  assetPrefix: "/ml-compass/",
 };
 export default nextConfig;
