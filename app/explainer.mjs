@@ -115,7 +115,7 @@ function hasWebGPU() { return typeof navigator !== "undefined" && "gpu" in navig
 // navigator.gpu, but loading a multi-GB model crashes the tab on phones/tablets.
 // So require WebGPU AND a non-mobile, non-low-memory device; otherwise fall back to
 // the deterministic rules text (decisions are identical — only the wording differs).
-function canRunBrowserLLM() {
+export function canRunBrowserLLM() {
   if (!hasWebGPU()) return false;
   const ua = navigator.userAgent || "";
   const isMobile =

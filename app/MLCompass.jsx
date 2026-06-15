@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 // ---- business logic (single source of truth, shared with the test harness) ----
-import { explainSections } from "./explainer.mjs";
+import { explainSections, canRunBrowserLLM } from "./explainer.mjs";
 import { profile, targetFacts, makeSample } from "./profiler.mjs";
 import { recommend, sectionText, LEAKY_RE } from "./rules.mjs";
 
@@ -91,6 +91,7 @@ export default function MLCompass() {
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [copied, setCopied] = useState(false);
   const [useLLM, setUseLLM] = useState(false);          // off by default → instant + $0
+  const [allowLLM, setAllowLLM] = useState(false);      // opt-in: download the on-device model
   const [explained, setExplained] = useState(null);     // reworded sections (or null)
   const [explainState, setExplainState] = useState("idle"); // idle | loading | workers-ai | on-device | rules
   const [loadMsg, setLoadMsg] = useState("");
@@ -136,18 +137,22 @@ export default function MLCompass() {
     return recommend({ modality: resolvedModality, task: noTarget ? null : resolvedTask, prof, answers, target, excludedCols });
   }, [stage, prof, resolvedTask, answers, known, target, noTarget, resolvedModality]);
 
+  // remember a previous opt-in to the on-device model so returning visitors skip the prompt
+  useEffect(() => { try { if (localStorage.getItem("mlc:ondevice") === "1") setAllowLLM(true); } catch {} }, []);
+
   // optional explainer: rephrase when enabled, and re-run / reset whenever the bearing changes
   useEffect(() => {
     if (stage !== 3 || !rec || !useLLM) { setExplained(null); setExplainState("idle"); setLoadMsg(""); return; }
     let cancelled = false;
     setExplainState("loading"); setLoadMsg("Checking Workers AI…");
     explainSections(rec.sections, {
+      enableBrowserFallback: allowLLM,   // on-device download only after explicit opt-in
       onStatus: (s) => {
         if (cancelled) return;
         if (s.tier === "workers-ai") { setLoadMsg("Checking Workers AI…"); return; }
         if (s.tier === "on-device") {
           const name = (s.model || "on-device model").replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ");
-          if (s.phase === "init") setLoadMsg("No server explainer here — preparing the on-device model…");
+          if (s.phase === "init") setLoadMsg("Preparing the on-device model…");
           else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~2 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
           else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
           else if (s.phase === "ready") setLoadMsg(`Using ${name} (on-device)…`);
@@ -159,7 +164,7 @@ export default function MLCompass() {
       setExplainState(source);   // 'workers-ai' | 'on-device' | 'rules'
     });
     return () => { cancelled = true; };
-  }, [stage, rec, useLLM]);
+  }, [stage, rec, useLLM, allowLLM]);
 
   const meta = () => ({ name: fileName, nRows: prof.nRows, nCols: prof.nCols, target: noTarget ? null : target, goal, modality: resolvedModality });
   const copyMd = () => navigator.clipboard.writeText(toMarkdown(rec, meta())).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); });
@@ -406,11 +411,22 @@ export default function MLCompass() {
               </div>
             </div>
             {useLLM && (
-              <div className="text-xs mb-4 -mt-1" style={{ ...mono, color: explainState === "rules" ? C.amber : C.inkSoft }}>
+              <div className="text-xs mb-4 -mt-1 flex flex-wrap items-center gap-2" style={{ ...mono, color: explainState === "rules" ? C.amber : C.inkSoft }}>
                 {explainState === "loading" && (loadMsg || "Rephrasing…")}
                 {explainState === "workers-ai" && "✓ Reworded by Workers AI — decisions unchanged."}
                 {explainState === "on-device" && "✓ Reworded on-device — decisions unchanged."}
-                {explainState === "rules" && "Explainer unavailable — showing the deterministic rules text."}
+                {explainState === "rules" && (
+                  (!allowLLM && canRunBrowserLLM()) ? (
+                    <>
+                      <span>Server explainer unavailable — showing the deterministic rules text.</span>
+                      <button onClick={() => { setAllowLLM(true); try { localStorage.setItem("mlc:ondevice", "1"); } catch {} }}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium"
+                        style={{ background: C.ink, color: "#fff" }}>
+                        <Wand2 size={12} /> Rephrase on-device (one-time ~2 GB download)
+                      </button>
+                    </>
+                  ) : "Explainer unavailable — showing the deterministic rules text."
+                )}
               </div>
             )}
             <div className="space-y-4">
