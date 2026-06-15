@@ -12,8 +12,8 @@
 const DEFAULT_ENDPOINT = "/api/explain";
 const DEFAULT_TIMEOUT_MS = 8000;
 // Small open model is plenty for rewording. Verify the id against WebLLM's prebuilt list.
-// Alternatives: "gemma-2-2b-it-q4f16_1-MLC", "Phi-3.5-mini-instruct-q4f16_1-MLC".
-const DEFAULT_BROWSER_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+// Alternatives: "Llama-3.2-3B-Instruct-q4f16_1-MLC" (nicer prose, ~2 GB), "gemma-2-2b-it-q4f16_1-MLC".
+const DEFAULT_BROWSER_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
 
 const SYSTEM = [
   "You rephrase machine-generated ML recommendations into clear, warm, plain English.",

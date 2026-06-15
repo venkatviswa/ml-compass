@@ -153,7 +153,7 @@ export default function MLCompass() {
         if (s.tier === "on-device") {
           const name = (s.model || "on-device model").replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ");
           if (s.phase === "init") setLoadMsg("Preparing the on-device model…");
-          else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~2 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
+          else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~0.9 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
           else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
           else if (s.phase === "ready") setLoadMsg(`Rephrasing with ${name} (on-device)… this can take up to a minute; the rules text shows until it's done.`);
         }
@@ -421,7 +421,7 @@ export default function MLCompass() {
                       <div className="min-w-0">
                         <div className="font-semibold text-sm" style={disp}>Want this in plain English?</div>
                         <div className="text-xs mt-0.5" style={{ color: C.inkSoft }}>
-                          No server explainer on this host — a small model can run in your browser to reword the text. Decisions never change. One-time ~2 GB download, cached afterward.
+                          No server explainer on this host — a small model can run in your browser to reword the text. Decisions never change. One-time ~0.9 GB download, cached afterward.
                         </div>
                       </div>
                       <button onClick={() => { setAllowLLM(true); try { localStorage.setItem("mlc:ondevice", "1"); } catch {} }}
