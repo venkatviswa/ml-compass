@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dataset → Model: Decision Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+  :root{
+    --ink:#15202b; --ink-soft:#445566; --paper:#fbfaf7; --panel:#ffffff; --line:#e3e1da;
+    --sup:#1f6feb; --sup-bg:#e9f1ff;
+    --uns:#7b3fe4; --uns-bg:#f1e9ff;
+    --rl:#c77400;  --rl-bg:#fdf0db;
+    --neu:#5a6b7b; --neu-bg:#eef1f4;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.55; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1020px; margin:0 auto; padding:32px 20px 80px;}
+
+  header{border-bottom:2px solid var(--ink); padding-bottom:20px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 10px;}
+  h1{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(28px,6vw,46px); line-height:1.02; margin:0; letter-spacing:-.02em;}
+  h1 .arrow{color:var(--sup);}
+  .sub{color:var(--ink-soft); font-size:15px; margin-top:14px; max-width:64ch;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0 0;}
+  .tag{font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:500; padding:5px 11px; border-radius:100px; display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line);}
+  .tag::before{content:""; width:9px; height:9px; border-radius:50%;}
+  .tag.sup{background:var(--sup-bg); color:var(--sup);} .tag.sup::before{background:var(--sup);}
+  .tag.uns{background:var(--uns-bg); color:var(--uns);} .tag.uns::before{background:var(--uns);}
+  .tag.rl{background:var(--rl-bg); color:var(--rl);} .tag.rl::before{background:var(--rl);}
+  .tag.neu{background:var(--neu-bg); color:var(--neu);} .tag.neu::before{background:var(--neu);}
+
+  /* lifecycle ribbon */
+  .ribbon{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:30px 0 6px;}
+  .lc{background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:13px 14px;}
+  .lc .n{font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600; color:var(--sup); letter-spacing:.05em;}
+  .lc .t{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:14px; margin:3px 0 2px;}
+  .lc .d{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
+  .lc.core{border-color:var(--sup); box-shadow:inset 0 0 0 1px var(--sup-bg);}
+  .ribbon-key{font-size:12.5px; color:var(--ink-soft); margin:0 0 38px;}
+  .ribbon-key b{color:var(--sup); font-family:"JetBrains Mono",monospace; font-weight:600;}
+
+  section{margin-bottom:54px;}
+  .step{font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--sup); font-weight:600; letter-spacing:.04em;}
+  h2{font-family:"Space Grotesk",sans-serif; font-weight:600; font-size:clamp(20px,3.5vw,27px); margin:4px 0 6px; letter-spacing:-.01em;}
+  .lead{color:var(--ink-soft); font-size:15px; margin:0 0 20px; max-width:68ch;}
+
+  .chart-frame{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; overflow-x:auto;}
+  .mermaid{min-width:560px;}
+
+  .scroll{overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--panel);}
+  table{border-collapse:collapse; width:100%; min-width:600px; font-size:14px;}
+  th,td{text-align:left; padding:13px 16px; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{font-family:"JetBrains Mono",monospace; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); background:#f6f5f1; position:sticky; top:0;}
+  tr:last-child td{border-bottom:none;}
+  td.mono,.mono{font-family:"JetBrains Mono",monospace; font-size:13px;}
+  td strong{font-weight:600;}
+  .pill{font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; padding:2px 8px; border-radius:6px; white-space:nowrap;}
+  .pill.yes{background:#e3f6e8; color:#1d7a3a;}
+  .pill.skip{background:#fbe6e6; color:#b23b3b;}
+  .pill.maybe{background:#fdf0db; color:#a85d00;}
+  .row-sup{border-left:3px solid var(--sup);}
+  .row-uns{border-left:3px solid var(--uns);}
+  .row-rl{border-left:3px solid var(--rl);}
+
+  .note{background:var(--neu-bg); border-left:3px solid var(--neu); border-radius:0 10px 10px 0; padding:14px 18px; font-size:14px; color:var(--ink); margin-top:18px;}
+  .note b{font-family:"Space Grotesk",sans-serif;}
+  .note.warn{background:#fdf0db; border-color:var(--rl);}
+
+  /* playbook */
+  .playbook{display:flex; flex-direction:column; gap:13px;}
+  .pb{display:grid; grid-template-columns:50px 1fr; gap:16px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:17px 18px;}
+  .pb .num{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:25px; color:var(--sup); line-height:1;}
+  .pb .num small{display:block; font-family:"JetBrains Mono",monospace; font-size:9px; color:var(--ink-soft); letter-spacing:.08em; margin-top:5px; text-transform:uppercase;}
+  .pb h3{font-family:"Space Grotesk",sans-serif; font-size:17px; margin:0 0 6px;}
+  .pb p{margin:0 0 10px; font-size:14px; color:var(--ink);}
+  .pb p:last-child{margin-bottom:0;}
+  .pb .eg{font-size:13px; background:var(--neu-bg); border-radius:8px; padding:9px 12px; color:var(--ink);}
+  .pb .eg b{font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.07em; color:var(--sup); display:block; margin-bottom:3px; text-transform:uppercase;}
+  .pb.feature{border-color:var(--sup); box-shadow:inset 0 0 0 1px var(--sup-bg);}
+  .pb .qs{margin:6px 0 12px; padding:0; list-style:none;}
+  .pb .qs li{font-size:13.5px; padding:4px 0 4px 20px; position:relative; color:var(--ink);}
+  .pb .qs li::before{content:"\2192"; position:absolute; left:0; color:var(--sup); font-weight:600;}
+  .pb .qs li b{font-weight:600;}
+  @media (max-width:620px){ .pb{grid-template-columns:38px 1fr; gap:12px; padding:15px;} .pb .num{font-size:20px;} }
+
+  /* checklist */
+  .check-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .check{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px;}
+  .check h3{font-family:"Space Grotesk",sans-serif; font-size:16px; margin:0 0 12px; display:flex; align-items:center; gap:8px;}
+  .check h3 span{font-family:"JetBrains Mono",monospace; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--neu-bg); color:var(--ink-soft);}
+  .check ul{list-style:none; margin:0; padding:0;}
+  .check li{position:relative; padding:6px 0 6px 24px; font-size:13.5px; border-bottom:1px solid var(--line);}
+  .check li:last-child{border-bottom:none;}
+  .check li::before{content:"\2713"; position:absolute; left:0; top:6px; color:var(--sup); font-weight:700; font-size:13px;}
+  .check li b{font-weight:600;}
+  .check.warn{border-color:var(--rl); background:#fffaf2; grid-column:1 / -1;}
+  .check.warn h3 span{background:var(--rl-bg); color:var(--rl);}
+  .check.warn li::before{content:"\26A0"; color:var(--rl); font-size:12px;}
+  .dataset{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 20px; font-size:13.5px; color:var(--ink); margin-top:8px;}
+  .dataset b{font-family:"Space Grotesk",sans-serif;}
+  .dataset a{color:var(--sup); text-decoration:none; border-bottom:1px solid var(--sup-bg);}
+  .dataset a:hover{border-bottom-color:var(--sup);}
+
+  footer{border-top:1px solid var(--line); padding-top:18px; color:var(--ink-soft); font-size:13px;}
+  code{font-family:"JetBrains Mono",monospace; font-size:.9em; background:#eef1f4; padding:1px 5px; border-radius:4px;}
+  @media (max-width:620px){ .wrap{padding:22px 14px 60px;} .check-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">ML Working Reference</p>
+    <h1>Dataset <span class="arrow">→</span> Model</h1>
+    <p class="sub">From a business question to a deployed model: the lifecycle up top, the branching decision core in the middle, and lookup matrices, a scoring rubric, and checklists below. Colors stay consistent across the flowchart and every table.</p>
+    <div class="legend">
+      <span class="tag neu">EDA / neutral</span>
+      <span class="tag sup">Supervised</span>
+      <span class="tag uns">Unsupervised</span>
+      <span class="tag rl">Reinforcement</span>
+    </div>
+  </header>
+
+  <!-- LIFECYCLE RIBBON -->
+  <div class="ribbon">
+    <div class="lc"><div class="n">01</div><div class="t">Frame the question</div><div class="d">Business goal + what a "win" looks like</div></div>
+    <div class="lc"><div class="n">02</div><div class="t">EDA</div><div class="d">Explore shape, distributions, relationships</div></div>
+    <div class="lc"><div class="n">03</div><div class="t">Data quality</div><div class="d">Missing, dupes, leakage, ranges</div></div>
+    <div class="lc core"><div class="n">04</div><div class="t">Define the task</div><div class="d">Target? Type? → paradigm</div></div>
+    <div class="lc"><div class="n">05</div><div class="t">Preprocess</div><div class="d">Split first, clean, impute, encode</div></div>
+    <div class="lc core"><div class="n">06</div><div class="t">Feature engineering</div><div class="d">Create the signal the model learns from</div></div>
+    <div class="lc core"><div class="n">07</div><div class="t">Baseline</div><div class="d">Naive floor (mean / mode), then a simple model</div></div>
+    <div class="lc core"><div class="n">08</div><div class="t">Stronger models</div><div class="d">Ensembles, then compare</div></div>
+    <div class="lc"><div class="n">09</div><div class="t">Evaluate</div><div class="d">Right metric, honest validation</div></div>
+    <div class="lc"><div class="n">10</div><div class="t">Explain</div><div class="d">SHAP, importances, coefficients</div></div>
+    <div class="lc"><div class="n">11</div><div class="t">Deploy / iterate</div><div class="d">Serve, monitor, loop back</div></div>
+  </div>
+  <p class="ribbon-key">The <b>highlighted</b> steps — define the task, feature engineering, baseline, and stronger models — are where the flowchart and matrices below go deep. The rest is covered by the rubric and checklists at the bottom.</p>
+
+  <!-- PLAYBOOK -->
+  <section>
+    <p class="step">PLAYBOOK</p>
+    <h2>The 11 steps, worked through</h2>
+    <p class="lead">Each step with what it actually means and one running example: <strong>predicting the fare of a NYC taxi trip at the moment of pickup</strong>. Steps 01 and 09 get extra room — framing and "what counts as success" are where most projects quietly go wrong.</p>
+
+    <div class="playbook">
+
+      <div class="pb feature">
+        <div class="num">01<small>frame</small></div>
+        <div>
+          <h3>Frame the question</h3>
+          <p>Turn a vague wish ("predict fares") into a precise, decidable question. Before touching a model, pin down:</p>
+          <ul class="qs">
+            <li><b>The decision it informs</b> — who acts on the output, and what changes because of it? (Show riders an upfront price.)</li>
+            <li><b>Unit of prediction</b> — one row = one what? (One taxi trip.)</li>
+            <li><b>The exact target</b> — what column, in what units? (Final fare in dollars.)</li>
+            <li><b>What's known at prediction time</b> — only features available <i>before</i> the ride. Using anything from during/after the trip is leakage.</li>
+            <li><b>Cost of being wrong</b> — and which direction hurts more. (Over-quoting loses riders; under-quoting loses money.)</li>
+          </ul>
+          <p><strong>Then define success on two levels</strong> — an <i>ML metric</i> (how you score the model) and a <i>business metric / threshold</i> (what makes it worth shipping), plus the status-quo bar you must beat.</p>
+          <div class="eg"><b>Example</b>Predict a trip's fare at pickup, per trip, from pickup time + zones + passenger count, so the app shows a reliable upfront price. <b style="display:inline; color:var(--ink-soft);">Success:</b> within $2 of actual on 80% of trips (ML: MAE / RMSE) <em>and</em> beats today's flat-rate estimate; inference under 100 ms.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">02<small>eda</small></div>
+        <div>
+          <h3>EDA</h3>
+          <p>Understand the data's shape and surprises before modeling — distributions, relationships, and anything weird.</p>
+          <div class="eg"><b>Example</b>Plot the fare distribution (catch negative fares, $0 rides, 200-mile outliers), check fare-vs-distance correlation, look at trips-by-hour patterns.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">03<small>quality</small></div>
+        <div>
+          <h3>Data quality</h3>
+          <p>Catch what quietly wrecks a model: missing values, duplicates, impossible values, and leakage.</p>
+          <div class="eg"><b>Example</b>Drop trips with negative fare or zero distance; verify <code>total_amount</code> isn't just fare + tip — tip isn't known at pickup, so including it would leak the answer.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">04<small>task</small></div>
+        <div>
+          <h3>Define the task</h3>
+          <p>Run the flowchart: is there a target? what type? → paradigm + task. This usually re-confirms step 01. One ambiguity to resolve deliberately: a <strong>numeric target with only a few distinct values</strong> (a 1–5 rating, a 0–10 score) isn't automatically regression. It can be modeled as regression (predict the value), classification (predict the class), or <strong>ordinal</strong> (respect the order) — that's your call to make, not the data's.</p>
+          <div class="eg"><b>Example</b>Fare is a continuous number we have labeled → <strong>supervised regression</strong>. A wine-quality score of 3–8, by contrast, is the ambiguous case: often best treated as ordinal, reporting accuracy-within-1 alongside RMSE.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">05<small>prep</small></div>
+        <div>
+          <h3>Preprocess</h3>
+          <p>Make the data model-ready <i>without</i> leaking. Split first, then clean, impute missing values, and encode — fitting every transform on the training fold only.</p>
+          <div class="eg"><b>Example</b>Hold out a later time window for testing; impute missing passenger counts; encode pickup zone using one-hot, frequency, or target encoding — fit on train only.</div>
+        </div>
+      </div>
+
+      <div class="pb feature">
+        <div class="num">06<small>features</small></div>
+        <div>
+          <h3>Feature engineering</h3>
+          <p>The highest-leverage step for tabular ML: turn raw columns into the signal the model actually learns from. A strong model on weak features loses to a simple model on good ones. Work <i>by data type</i> — numeric, categorical, datetime, text — then add cross-feature interactions, aggregates, and missingness indicators where they make domain sense. Keep it iterative: engineer, train, read importances, keep what helps. (See the feature-engineering matrix below for techniques by type.)</p>
+          <div class="eg"><b>Example</b>From a pickup timestamp: hour-of-day, day-of-week, is_weekend, and cyclical sin/cos of the hour. From pickup and destination zones, if both are known at quote time: route distance and mean-fare-by-route encoding fit inside CV. Plus an is-airport-trip flag from the zones. (A "speed" feature would need trip duration — unknown at pickup — so it stays out.)</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">07<small>baseline</small></div>
+        <div>
+          <h3>Baseline</h3>
+          <p>Set the floors to beat: a <i>naive</i> predictor first (<code>DummyRegressor</code> = predict the mean), then a <i>simple</i> model.</p>
+          <div class="eg"><b>Example</b>"Always predict the average fare" gives some RMSE; a linear regression on distance + time gives a better one. That number is now the bar.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">08<small>models</small></div>
+        <div>
+          <h3>Stronger models</h3>
+          <p>Bring in ensembles and compare against the baseline. Diagnose first: if variance is high (overfitting), try bagging / Random Forest or more regularization; if bias is high (underfitting), try a more expressive model like boosting — which itself needs care not to overfit.</p>
+          <div class="eg"><b>Example</b>Try Random Forest, then LightGBM; compare cross-validated RMSE against the linear baseline.</div>
+        </div>
+      </div>
+
+      <div class="pb feature">
+        <div class="num">09<small>evaluate</small></div>
+        <div>
+          <h3>Evaluate — what "success" really means</h3>
+          <p>Score on the <strong>right metric</strong> with <strong>honest validation</strong>, and check the business threshold from step 01, not just the loss function. Five checks:</p>
+          <ul class="qs">
+            <li><b>ML metric</b> — regression: RMSE / MAE / R². Classification: PR-AUC / F1 / recall (not accuracy if imbalanced).</li>
+            <li><b>Business metric</b> — the number a stakeholder cares about. Here: "% of trips quoted within $2."</li>
+            <li><b>Calibration</b> — when the <i>probability</i> matters more than the label (risk score, fraud, churn, readmission), check a reliability curve and calibrate with Platt or isotonic.</li>
+            <li><b>Subgroup performance</b> — in regulated or high-stakes settings, compare metrics across subgroups (age, sex, geography, payer type, etc.) where legally and ethically permitted, not just the overall average.</li>
+            <li><b>Validation that doesn't lie</b> — proper cross-validation; for anything time-dependent, split by time (walk-forward), never shuffle.</li>
+          </ul>
+          <div class="eg"><b>Example</b>Report MAE in dollars <em>and</em> "78% of trips within $2," validated on a later time window than training — because traffic and pricing patterns drift.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">10<small>explain</small></div>
+        <div>
+          <h3>Explain</h3>
+          <p>Make the model's reasoning legible with SHAP, feature importances, or coefficients. Builds trust — and catches leakage.</p>
+          <div class="eg"><b>Example</b>SHAP shows distance and hour dominate (sensible). If a dropoff-only feature dominates a <i>pickup-time</i> prediction, suspect leakage.</div>
+        </div>
+      </div>
+
+      <div class="pb">
+        <div class="num">11<small>deploy</small></div>
+        <div>
+          <h3>Deploy / iterate</h3>
+          <p>Serve it, monitor for drift, loop back. A model stuck in a notebook helps no one.</p>
+          <div class="eg"><b>Example</b>Wrap it in a FastAPI endpoint, log predicted vs actual fares, and retrain when error creeps up (track runs in MLflow).</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FLOWCHART -->
+  <section>
+    <p class="step">FLOW · A</p>
+    <h2>Diagram 1 — Paradigm selector</h2>
+    <p class="lead">The first half of the decision: from a dataset to <em>which kind of problem</em> you have. The first fork — does a target exist? — resolves almost everything downstream.</p>
+    <div class="chart-frame">
+      <pre class="mermaid">
+flowchart TD
+  Q([Frame the business question]):::neu --> A([Dataset in hand]):::neu
+  A --> B[EDA + data quality<br/>shape · missing · distributions<br/>cardinality · correlations · leakage]:::neu
+  B --> C{Is there a target<br/>you want to predict?}:::neu
+
+  C -->|No target —<br/>find structure| U[UNSUPERVISED]:::uns
+  C -->|Agent acts in an<br/>environment for reward| R[REINFORCEMENT<br/>LEARNING]:::rl
+  C -->|Yes —<br/>labeled target| S{Target type?}:::sup
+
+  S -->|Continuous number| REG[SUPERVISED<br/>REGRESSION]:::sup
+  S -->|Category / class| CLF[SUPERVISED<br/>CLASSIFICATION]:::sup
+
+  U --> U1[Group rows<br/>KMeans · DBSCAN · GMM]:::uns
+  U --> U2[Reduce dims / visualize<br/>PCA · UMAP · t-SNE]:::uns
+  U --> U3[Find rare rows<br/>Isolation Forest]:::uns
+
+  R --> R1[Q-learning · DQN · PPO<br/>needs an environment, not a static table]:::rl
+
+  REG --> GO([Regression or classification?<br/>→ go to Diagram 2]):::neu
+  CLF --> GO
+
+  classDef neu fill:#eef1f4,stroke:#5a6b7b,stroke-width:1px,color:#15202b;
+  classDef sup fill:#e9f1ff,stroke:#1f6feb,stroke-width:1.5px,color:#0d3a78;
+  classDef uns fill:#f1e9ff,stroke:#7b3fe4,stroke-width:1.5px,color:#4a1d8f;
+  classDef rl fill:#fdf0db,stroke:#c77400,stroke-width:1.5px,color:#7a4600;
+      </pre>
+    </div>
+  </section>
+
+  <section>
+    <p class="step">FLOW · B</p>
+    <h2>Diagram 2 — Model family selector (supervised)</h2>
+    <p class="lead">Picking up where Diagram 1 lands you on a supervised task: choose the model family, with the baseline ladder built in before any ensemble.</p>
+    <div class="chart-frame">
+      <pre class="mermaid">
+flowchart TD
+  IN([Supervised task<br/>from Diagram 1]):::sup --> M{Data shape?}:::sup
+  M -->|Images / audio /<br/>sequences| DL[Deep learning<br/>CNN · RNN · Transformers]:::sup
+  M -->|Text| TX0[Text baseline first<br/>TF-IDF + LogReg / Naive Bayes]:::sup
+  TX0 --> TX1[Embeddings / transformers<br/>only if the baseline falls short]:::sup
+  M -->|Tabular| N0[Naive floor<br/>mean / majority class]:::neu
+  N0 --> N1[Simple baseline<br/>Linear / Logistic / single tree]:::sup
+  N1 --> T1{Beat the baseline —<br/>what matters most?}:::sup
+
+  T1 -->|Top accuracy,<br/>OK to tune| BO[BOOSTING<br/>XGBoost · LightGBM · CatBoost]:::sup
+  T1 -->|Robust, low-tuning,<br/>high variance baseline| BG[BAGGING<br/>Random Forest · ExtraTrees]:::sup
+  T1 -->|Interpretability /<br/>linear signal| LIN[Linear / Logistic<br/>+ SHAP]:::sup
+
+  BO --> EV[Evaluate · explain ·<br/>calibrate · deploy]:::neu
+  BG --> EV
+  LIN --> EV
+  TX1 --> EV
+  DL --> EV
+  N1 -.high dim or<br/>correlated features?.-> P[/Run the PCA check →/]:::neu
+  EV -.right metric.-> MET[/Regression: RMSE · MAE · R²<br/>Classification: PR-AUC · F1 · recall<br/>calibrate if the probability matters/]:::neu
+
+  classDef neu fill:#eef1f4,stroke:#5a6b7b,stroke-width:1px,color:#15202b;
+  classDef sup fill:#e9f1ff,stroke:#1f6feb,stroke-width:1.5px,color:#0d3a78;
+      </pre>
+    </div>
+    <div class="note"><b>The baseline ladder.</b> Before any ensemble, clear two floors: a <i>naive</i> baseline (predict the mean for regression, the majority class for classification — sklearn's <code>DummyRegressor</code> / <code>DummyClassifier</code>), then a <i>simple</i> model (linear / logistic). If a tuned XGBoost can't beat the naive floor by a meaningful margin, the problem is the framing or the data, not the model.</div>
+  </section>
+
+
+  <section class="flowsec">
+    <p class="step">FLOW · C</p>
+    <h2>Diagram 3 — Feature engineering by data type</h2>
+    <p class="lead">Step 06 in detail: for each raw column, the right techniques depend on its type — and every transform that <em>learns</em> from the data belongs inside the CV folds to stay leakage-free.</p>
+    <div class="chart-frame">
+      <pre class="mermaid">
+flowchart TD
+  C([For each candidate feature]):::neu --> Q{What type?}:::neu
+  Q -->|Numeric| NUM[Transform / scale · bin ·<br/>ratios & differences]:::sup
+  Q -->|Categorical<br/>low-card| CL[One-hot ·<br/>ordinal if ordered]:::sup
+  Q -->|Categorical<br/>high-card| CH[Target / frequency<br/>encoding]:::sup
+  Q -->|Datetime| DT[Parts · cyclical sin/cos ·<br/>lags · rolling windows]:::sup
+  Q -->|Text| TX[TF-IDF / counts ·<br/>embeddings]:::sup
+  C --> AGG[Across features ·<br/>interactions · aggregates ·<br/>missingness flags]:::sup
+  NUM --> G[/Fit every transform inside CV folds — no leakage/]:::neu
+  CL --> G
+  CH --> G
+  DT --> G
+  TX --> G
+  AGG --> G
+  G --> BL[Feed the baseline · read importances · iterate]:::neu
+  classDef neu fill:#eef1f4,stroke:#5a6b7b,stroke-width:1px,color:#15202b;
+  classDef sup fill:#e9f1ff,stroke:#1f6feb,stroke-width:1.5px,color:#0d3a78;
+      </pre>
+    </div>
+  </section>
+
+
+  <!-- MATRIX 1: paradigm -->
+  <section>
+    <p class="step">MATRIX 01</p>
+    <h2>Which learning paradigm?</h2>
+    <p class="lead">Match the signal in your data to the paradigm. The presence and type of a target column does the heavy lifting.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What you see in the data</th><th>Paradigm</th><th>Task</th><th>Typical models</th></tr></thead>
+        <tbody>
+          <tr class="row-sup"><td>Target column of <strong>continuous numbers</strong> (fare, duration, price)</td><td>Supervised</td><td>Regression</td><td class="mono">LinearReg · RF · XGBoost</td></tr>
+          <tr class="row-sup"><td>Target column of <strong>categories / labels</strong> (fraud y/n, tier)</td><td>Supervised</td><td>Classification</td><td class="mono">LogisticReg · NaiveBayes · RF · XGBoost</td></tr>
+          <tr class="row-uns"><td><strong>No target</strong>; want natural groupings</td><td>Unsupervised</td><td>Clustering</td><td class="mono">KMeans · DBSCAN · GMM</td></tr>
+          <tr class="row-uns"><td><strong>No target</strong>; too many features / want a 2D view</td><td>Unsupervised</td><td>Dim. reduction</td><td class="mono">PCA · UMAP · t-SNE</td></tr>
+          <tr class="row-uns"><td><strong>No target</strong>; want the odd / rare rows</td><td>Unsupervised</td><td>Anomaly detection</td><td class="mono">IsolationForest · OC-SVM</td></tr>
+          <tr class="row-rl"><td><strong>Agent</strong> taking actions in an environment for a <strong>reward</strong> over time</td><td>Reinforcement</td><td>Sequential control</td><td class="mono">Q-learning · DQN · PPO</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn"><b>RL is the odd one out.</b> It doesn't start from a static dataset — it needs an interactive environment and a reward signal. A file of rows is almost always supervised or unsupervised, not RL, unless it carries action-and-reward history.</div>
+  </section>
+
+  <!-- MATRIX 2: situational start-here -->
+  <section>
+    <p class="step">MATRIX 02</p>
+    <h2>Given your situation, start here → level up</h2>
+    <p class="lead">The prescriptive shortcut: find your row, ship the baseline, then earn the stronger model only if validation says it's worth the complexity.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Your situation</th><th>Start here (baseline)</th><th>Level up</th></tr></thead>
+        <tbody>
+          <tr><td>Small tabular, classification</td><td class="mono">Logistic Reg · Decision Tree</td><td class="mono">Random Forest</td></tr>
+          <tr><td>Medium / large tabular</td><td class="mono">Random Forest</td><td class="mono">XGBoost · LightGBM · CatBoost</td></tr>
+          <tr><td>Lots of categorical features</td><td class="mono">CatBoost (native cats)</td><td class="mono">Tuned CatBoost / LightGBM</td></tr>
+          <tr><td>Need interpretability</td><td class="mono">Linear / Logistic · single tree</td><td class="mono">Tree model + SHAP</td></tr>
+          <tr><td>Accuracy is the priority</td><td class="mono">Random Forest</td><td class="mono">Tuned gradient boosting</td></tr>
+          <tr><td>Imbalanced classes</td><td class="mono">LogReg + class weights</td><td class="mono">XGB/LightGBM + scale_pos_weight</td></tr>
+          <tr><td>Text</td><td class="mono">TF-IDF + Logistic Reg / Naive Bayes</td><td class="mono">Embeddings / transformer + clf</td></tr>
+          <tr><td>Images</td><td class="mono">Pretrained CNN (transfer)</td><td class="mono">Fine-tuned CNN / ViT</td></tr>
+          <tr><td>Time series / forecasting</td><td class="mono">Naive · ARIMA · Prophet</td><td class="mono">Lag features + boosting; deep if large</td></tr>
+          <tr><td>Very small dataset</td><td class="mono">Simple model + cross-validation</td><td class="mono">Light, well-regularized boosting (only if CV says so)</td></tr>
+          <tr><td>High-cardinality categoricals (zip, SKU, ID)</td><td class="mono">CatBoost / leakage-safe target encoding</td><td class="mono">Tuned CatBoost / LightGBM (encode inside CV folds)</td></tr>
+          <tr><td>Need calibrated probabilities</td><td class="mono">LogReg (often well-calibrated)</td><td class="mono">RF / boosting + Platt or isotonic calibration</td></tr>
+          <tr><td>Healthcare / regulated use case</td><td class="mono">Interpretable baseline + calibration</td><td class="mono">Monitored model + subgroup fairness (age, sex, geography, payer type — where permitted) + documentation</td></tr>
+          <tr><td>Time-dependent tabular (drifts over time)</td><td class="mono">Simple model, time-based split</td><td class="mono">Boosting; only features known at prediction time</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn"><b>Two traps in this table.</b> For <b>imbalanced</b> problems, never judge on accuracy — use PR-AUC, F1, or recall at a fixed precision. For anything <b>time-dependent</b>, validate in time order (walk-forward) — shuffling leaks the future into training — and use only features whose values are actually known at prediction time.</div>
+  </section>
+
+  <!-- MATRIX 3: family mechanics -->
+  <section>
+    <p class="step">MATRIX 03</p>
+    <h2>Why each family behaves the way it does</h2>
+    <p class="lead">Your three terms aren't siblings: <strong>Random Forest is itself a bagging method</strong>. The real choice is bagging vs boosting vs simpler/other models.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Family</th><th>How it works</th><th>Bias / variance</th><th>Reach for it when</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Single tree</strong></td><td>One decision tree splits the data</td><td>Low bias, <strong>high variance</strong></td><td>Fast, fully interpretable baseline</td><td class="mono">DecisionTree</td></tr>
+          <tr><td><strong>Bagging</strong><br><span class="mono" style="font-size:12px;color:#1d7a3a;">incl. Random Forest</span></td><td>Many trees in <strong>parallel</strong> on bootstrap samples; vote / average</td><td>Cuts <strong>variance</strong></td><td>Robust default, noisy data, minimal tuning</td><td class="mono">RandomForest · ExtraTrees</td></tr>
+          <tr><td><strong>Boosting</strong></td><td>Trees built <strong>sequentially</strong>, each fixing the last one's errors</td><td>Cuts <strong>bias &amp; variance</strong></td><td>Top accuracy on tabular; willing to tune; cleanish data</td><td class="mono">XGBoost · LightGBM · CatBoost</td></tr>
+          <tr><td><strong>Linear / Logistic</strong></td><td>Weighted sum of features</td><td><strong>High bias</strong>, low variance</td><td>Roughly linear signal; interpretability; sparse high-dim</td><td class="mono">LinearReg · LogisticReg</td></tr>
+          <tr><td><strong>Naive Bayes</strong></td><td>Probabilistic; assumes features are independent given the class</td><td><strong>High bias</strong>, low variance</td><td>Fast text-classification baseline; high-dim sparse features; very little data</td><td class="mono">MultinomialNB · GaussianNB</td></tr>
+          <tr><td><strong>Distance-based</strong></td><td>Predicts from nearby / separating points</td><td>Varies</td><td>Small–medium data, smooth boundaries; <strong>scale first</strong></td><td class="mono">kNN · SVM</td></tr>
+          <tr><td><strong>Neural nets</strong></td><td>Layered non-linear transforms</td><td>Very high capacity</td><td>Images, text, audio, sequences, or very large data</td><td class="mono">CNN · RNN · Transformer</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><b>Rule of thumb for tabular.</b> Random Forest as the honest baseline → then a boosting model to chase accuracy. As a starting direction: <strong>high variance (overfitting) → bagging / Random Forest or more regularization</strong>; <strong>high bias (underfitting) → a more expressive model such as boosting</strong>. Treat that as a hint, not a law — boosting can overfit if tuned too aggressively, and a Random Forest can underfit if its trees are over-constrained. Either way, cross-validate 2–3 candidates and let the score decide.</div>
+  </section>
+
+  <!-- MATRIX 4: unsupervised -->
+  <section>
+    <p class="step">MATRIX 04</p>
+    <h2>If it's unsupervised: pick by goal and shape</h2>
+    <p class="lead">No target means the goal itself is the decision. Scale features first for anything distance-based.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Goal</th><th>Pick</th><th>When it fits</th></tr></thead>
+        <tbody>
+          <tr class="row-uns"><td>Group records</td><td class="mono">KMeans</td><td>Roughly round clusters, K known or estimable</td></tr>
+          <tr class="row-uns"><td>Group records</td><td class="mono">DBSCAN / HDBSCAN</td><td>Irregular shapes, noise, unknown K</td></tr>
+          <tr class="row-uns"><td>Group records (soft)</td><td class="mono">Gaussian Mixture</td><td>Want probability of membership, not hard labels</td></tr>
+          <tr class="row-uns"><td>Reduce dims (linear)</td><td class="mono">PCA</td><td>Compression, denoise, speed up downstream model</td></tr>
+          <tr class="row-uns"><td>Reduce dims (visualize)</td><td class="mono">UMAP / t-SNE</td><td>Nonlinear structure, 2D/3D plots only — not as model input</td></tr>
+          <tr class="row-uns"><td>Find odd rows</td><td class="mono">Isolation Forest</td><td>Tabular default</td></tr>
+          <tr class="row-uns"><td>Find odd rows</td><td class="mono">One-Class SVM</td><td>Smaller datasets</td></tr>
+          <tr class="row-uns"><td>Find odd rows</td><td class="mono">Autoencoder</td><td>Large, complex, high-dimensional data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- MATRIX 5: PCA -->
+  <section>
+    <p class="step">MATRIX 05</p>
+    <h2>Do you actually need PCA?</h2>
+    <p class="lead">Decided by <strong>feature count, correlation, and model type</strong> — not row count. A million rows with 8 clean features needs no PCA; 300 rows with 4,000 features probably does.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Situation</th><th>PCA?</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Many features relative to rows (high <code>p</code>)</td><td><span class="pill maybe">CONSIDER</span></td><td>Compresses signal, fights the curse of dimensionality</td></tr>
+          <tr><td>Lots of <strong>correlated / redundant</strong> numeric features</td><td><span class="pill maybe">CONSIDER</span></td><td>PCA components are uncorrelated by construction</td></tr>
+          <tr><td>Model is <strong>distance- or linear-based</strong> (kNN, SVM, KMeans, linreg)</td><td><span class="pill yes">OFTEN HELPS</span></td><td>These degrade as dimensionality grows</td></tr>
+          <tr><td>You need a <strong>2D / 3D plot</strong></td><td><span class="pill yes">YES (viz)</span></td><td>Project to 2–3 components to see structure</td></tr>
+          <tr><td>Model is a <strong>tree ensemble</strong> (RF, XGBoost)</td><td><span class="pill skip">USUALLY SKIP</span></td><td>Trees handle correlation natively; PCA kills feature importances</td></tr>
+          <tr><td>Few, already-meaningful features</td><td><span class="pill skip">SKIP</span></td><td>Nothing to gain; you lose clarity</td></tr>
+          <tr><td><strong>Interpretability</strong> required</td><td><span class="pill skip">BE CAREFUL</span></td><td>Components are opaque linear blends</td></tr>
+          <tr><td>Sparse high-dim text (TF-IDF)</td><td><span class="pill maybe">USE SVD</span></td><td>TruncatedSVD instead — PCA assumes dense, centered data</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><b>For tree-based work specifically:</b> keep PCA out of the main pipeline. It pays off as a <i>side experiment</i> — compressing a wide one-hot block, or a 2-component scatter to eyeball clusters — not as default preprocessing.</div>
+  </section>
+
+  <!-- MATRIX 6: feature engineering -->
+  <section>
+    <p class="step">MATRIX 06</p>
+    <h2>Feature engineering — techniques by data type</h2>
+    <p class="lead">The reference for step 06, and the companion to Diagram 3. Match each column's type to its techniques, and mind the trap each one hides — most are leakage if fit before the split.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Feature type</th><th>Common techniques</th><th>Watch out for</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Numeric</strong></td><td>Log / Box-Cox transforms, scaling, binning, ratios &amp; differences, polynomial terms</td><td>Trees don't need scaling; fit scalers on train only</td></tr>
+          <tr><td><strong>Categorical — low cardinality</strong></td><td>One-hot; ordinal only if genuinely ordered</td><td>One-hot explodes width with many levels; ordinal implies a false order</td></tr>
+          <tr><td><strong>Categorical — high cardinality</strong> (zip, SKU, ID)</td><td>Target / mean encoding, frequency / count encoding, hashing; or native (CatBoost)</td><td>Target encoding leaks unless fit inside CV folds — smooth / regularize it</td></tr>
+          <tr><td><strong>Datetime</strong></td><td>Parts (hour, day-of-week, month), cyclical sin/cos, is_weekend / holiday, time-since-event, lags &amp; rolling windows</td><td>Lags and rolling stats must use only the past — respect time order</td></tr>
+          <tr><td><strong>Text</strong></td><td>TF-IDF / counts, embeddings, length &amp; keyword flags</td><td>High-dim sparse → TruncatedSVD, not PCA; tokenization choices matter</td></tr>
+          <tr><td><strong>Across features</strong></td><td>Interactions (products / ratios), group aggregates (mean-by-category), missingness flags</td><td>Aggregates computed before the split leak — compute within train / CV</td></tr>
+          <tr><td><strong>Missingness as signal</strong></td><td>"was_missing" indicator alongside imputing the value</td><td>The indicator helps when missingness is informative; still impute</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note warn"><b>The golden rule of feature engineering.</b> Anything that <i>learns</i> from the data — scaling statistics, target encodings, aggregates, imputation values — must be fit on the training fold only, inside cross-validation, never on the full dataset. That one discipline prevents most leakage.</div>
+  </section>
+
+  <!-- RUBRIC -->
+  <section>
+    <p class="step">RUBRIC 07</p>
+    <h2>Scoring candidates (don't pick on accuracy alone)</h2>
+    <p class="lead">Once you have 2–3 trained candidates, score each across these axes and weight them by what the project actually needs. A model that wins on accuracy but can't be explained may still lose.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Criterion</th><th>What it tells you</th><th>Who tends to win</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Predictive performance</strong></td><td>CV score on the <em>right</em> metric</td><td class="mono">Boosting (tabular)</td></tr>
+          <tr><td><strong>Interpretability</strong></td><td>Can you explain one prediction?</td><td class="mono">Linear · single tree</td></tr>
+          <tr><td><strong>Training cost</strong></td><td>Time / compute to fit &amp; tune</td><td class="mono">Linear · RF (parallel)</td></tr>
+          <tr><td><strong>Inference latency</strong></td><td>Speed at predict time</td><td class="mono">Linear · small tree</td></tr>
+          <tr><td><strong>Missing values</strong></td><td>Handles NaNs natively?</td><td class="mono">LightGBM · XGBoost · HistGB</td></tr>
+          <tr><td><strong>Categorical handling</strong></td><td>Native, or needs encoding?</td><td class="mono">CatBoost</td></tr>
+          <tr><td><strong>Outlier robustness</strong></td><td>Sensitive to extreme rows?</td><td class="mono">Tree ensembles</td></tr>
+          <tr><td><strong>Deployment ease</strong></td><td>Size, deps, serving complexity</td><td class="mono">Linear · RF</td></tr>
+          <tr><td><strong>Business explainability</strong></td><td>Will stakeholders trust it?</td><td class="mono">Linear · trees + SHAP</td></tr>
+          <tr><td><strong>Calibration quality</strong></td><td>Are predicted probabilities trustworthy? (reliability curve / Brier score)</td><td class="mono">Logistic Reg · calibrated ensembles</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CHECKLISTS -->
+  <section>
+    <p class="step">CHECKLIST 08</p>
+    <h2>EDA, preprocessing &amp; feature engineering</h2>
+    <p class="lead">The unglamorous steps that decide whether the model above is trustworthy.</p>
+    <div class="check-grid">
+      <div class="check">
+        <h3>EDA <span>explore</span></h3>
+        <ul>
+          <li><b>Shape &amp; dtypes</b> — rows, columns, what each is</li>
+          <li><b>Target distribution</b> — and class imbalance if classifying</li>
+          <li><b>Missing-value map</b> — which columns, how much, why</li>
+          <li><b>Numeric distributions</b> — skew, outliers, scale</li>
+          <li><b>Categorical cardinality</b> — how many levels each</li>
+          <li><b>Correlations</b> — and check for target leakage</li>
+          <li><b>Date / time ranges</b> — gaps, ordering</li>
+          <li><b>Duplicates</b> — exact and near-duplicate rows</li>
+        </ul>
+      </div>
+      <div class="check">
+        <h3>Preprocessing <span>prepare</span></h3>
+        <ul>
+          <li><b>Split first</b> — fit transforms on train only (no leakage)</li>
+          <li><b>Missing values</b> — impute, or use a NaN-aware model</li>
+          <li><b>Scaling</b> — only for distance / linear models; trees don't need it</li>
+          <li><b>Encode categoricals</b> — one-hot, target, or native (CatBoost)</li>
+          <li><b>Outliers</b> — handle only if using a linear model</li>
+          <li><b>Feature engineering</b> — ratios, dates, domain features</li>
+          <li><b>Time series</b> — split by time, build lag / rolling features</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEAKAGE RED FLAGS -->
+  <section>
+    <p class="step">RED FLAGS 09</p>
+    <h2>Data leakage — the biggest practical failure mode</h2>
+    <p class="lead">Leakage is when information that wouldn't be available at prediction time sneaks into training. The model looks brilliant in validation and then collapses in production. If a result seems too good, suspect leakage first.</p>
+    <div class="check-grid">
+      <div class="check warn">
+        <h3>Watch for <span>leakage</span></h3>
+        <ul>
+          <li><b>Future columns</b> — values recorded after the moment you'd actually predict</li>
+          <li><b>Post-outcome fields</b> — anything filled in <i>because</i> the outcome happened (e.g. tip amount when predicting fare at pickup)</li>
+          <li><b>IDs that encode the target</b> — case numbers, account types, or codes that quietly leak the label</li>
+          <li><b>Duplicate entities across splits</b> — the same patient / customer in both train and test inflates the score</li>
+          <li><b>Aggregates computed before splitting</b> — means, target encodings, or scalers fit on the whole dataset leak test info into train</li>
+          <li><b>Time bleed</b> — random shuffles on time-ordered data let the model see the future</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">The fix is almost always the same: <b>split first</b>, then fit every transform (imputation, scaling, encoding, aggregates) on the training fold only — inside cross-validation, not before it.</div>
+  </section>
+
+  <!-- DATASET -->
+  <section>
+    <p class="step">SOURCE</p>
+    <h2>About the example dataset</h2>
+    <p class="lead">The taxi-fare example throughout uses real, public data.</p>
+    <div class="dataset">
+      <b>NYC TLC Yellow Taxi Trip Records.</b> Published monthly by the New York City Taxi &amp; Limousine Commission in Parquet format, with fields for pickup/dropoff times and zones, trip distance, passenger count, and itemized fares. (Note: 2025-onward files add a congestion-fee column, so schemas can shift slightly year to year.)<br><br>
+      Official source: <a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">nyc.gov/site/tlc/about/tlc-trip-record-data.page</a>
+    </div>
+  </section>
+
+  <footer>
+    Routing reference, not a rulebook. Every branch is a strong default to start from — validation results, data quirks, and the cost of errors settle the final choice.
+  </footer>
+
+</div>
+<script>
+  mermaid.initialize({
+    startOnLoad:true, theme:"base",
+    flowchart:{ curve:"basis", padding:14, nodeSpacing:42, rankSpacing:48 },
+    themeVariables:{ fontFamily:"JetBrains Mono, monospace", fontSize:"13px", lineColor:"#9aa7b3", primaryColor:"#eef1f4", primaryTextColor:"#15202b", primaryBorderColor:"#5a6b7b" }
+  });
+</script>
+</body>
+</html>
