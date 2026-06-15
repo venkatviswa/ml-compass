@@ -104,7 +104,7 @@ async function tryBrowser(model, payload, onStatus) {
   const reply = await engine.chat.completions.create({
     messages: [{ role: "system", content: SYSTEM }, { role: "user", content: "Rephrase these sections:\n" + JSON.stringify(payload) }],
     temperature: 0.3,
-    max_tokens: 1000,
+    max_tokens: 2048,   // headroom: ~9 sections × 3 fields; too low truncates the JSON
   });
   return extractJsonArray(reply?.choices?.[0]?.message?.content || "");
 }
@@ -129,21 +129,34 @@ export function canRunBrowserLLM() {
 }
 
 function extractJsonArray(text) {
-  const a = text.indexOf("["), b = text.lastIndexOf("]");
-  if (a === -1 || b === -1 || b <= a) return null;
-  try { const v = JSON.parse(text.slice(a, b + 1)); return Array.isArray(v) ? v : null; } catch { return null; }
+  const a = text.indexOf("[");
+  if (a === -1) return null;
+  const parse = (s) => { try { const v = JSON.parse(s); return Array.isArray(v) ? v : null; } catch { return null; } };
+  const b = text.lastIndexOf("]");
+  if (b > a) { const v = parse(text.slice(a, b + 1)); if (v) return v; }
+  // Salvage a truncated reply (small models often run out of tokens mid-array):
+  // close the array after the last complete object so we keep what did come back.
+  const lastObj = text.lastIndexOf("}");
+  if (lastObj > a) { const v = parse(text.slice(a, lastObj + 1) + "]"); if (v) return v; }
+  return null;
 }
 
 // Only text fields are replaced; id / title / tone / order come from the originals.
-// If anything is missing or malformed, return null so the caller falls back wholesale.
+// Partial merge: sections the model dropped or mangled keep their deterministic text,
+// so a small/imperfect model still rewords what it can instead of failing wholesale.
+// Returns null only if NOTHING was reworded (then the caller falls back to rules).
 function mergeRephrased(original, data) {
   const arr = Array.isArray(data) ? data : data?.sections;
-  if (!Array.isArray(arr)) return null;
+  if (!Array.isArray(arr) || !arr.length) return null;
   const byId = new Map(arr.map((x) => [x && x.id, x]));
-  if (!original.every((s) => byId.has(s.id))) return null;
-  return original.map((s) => {
-    const r = byId.get(s.id) || {};
+  let reworded = 0;
+  const out = original.map((s) => {
+    const r = byId.get(s.id);
+    if (!r) return s;
     const keep = (v, fb) => (typeof v === "string" && v.trim() ? v.trim() : fb);
-    return { ...s, decision: keep(r.decision, s.decision), reason: keep(r.reason, s.reason), caveat: s.caveat ? keep(r.caveat, s.caveat) : "" };
+    const merged = { ...s, decision: keep(r.decision, s.decision), reason: keep(r.reason, s.reason), caveat: s.caveat ? keep(r.caveat, s.caveat) : "" };
+    if (merged.decision !== s.decision || merged.reason !== s.reason || merged.caveat !== s.caveat) reworded++;
+    return merged;
   });
+  return reworded ? out : null;
 }
