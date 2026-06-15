@@ -20,8 +20,11 @@ caveats.
 
 The recommendation is produced by a **deterministic rules engine** over your
 dataset profile and your answers — never by a language model guessing. That makes
-the advice testable, auditable, and reproducible. (A future LLM layer is meant
-only to *phrase* the result in friendly prose, never to change the decision.)
+the advice testable, auditable, and reproducible. The optional LLM layer only
+*phrases* the result in friendly prose: the **decision and caveats are shown
+verbatim** from the rules engine, the explainer rewords just the *rationale*, and
+if that wording drifts from the facts the app discards it and shows the exact
+rules text. It can never change a decision.
 
 This is the deliberate counter‑position to "ask a chatbot which model to use":
 the model that gives you confident wrong advice is exactly the failure mode this
@@ -52,40 +55,35 @@ design removes.
 | `MLCompass.jsx` | **UI** | The React component: the four‑stage wizard, profile table, question cards, and the bearing report. Pure presentation + state — contains no decision logic. In a Next.js app, add `"use client";` as the first line. |
 | `rules.mjs` | **Business logic** | The deterministic advisor engine. `recommend(facts)` takes a profile + answers and returns structured sections (task, baseline, model families, metrics, PCA, feature engineering, validation, leakage, calibration, fairness). Branches for tabular, text, image, and unsupervised paths, plus small‑n and ordinal‑framing handling. **Single source of truth** — imported by both the UI and the tests. |
 | `profiler.mjs` | **Business logic** | Dataset profiling (`profile`), target analysis with framing‑ambiguity detection (`targetFacts`), the synthetic NYC‑taxi `makeSample`, and the tunable thresholds (`SMALL_N`, `HIGH_CARD`, `ORDINAL_MAX`). No React. |
-| `rules.test.mjs` | **Tests** | Golden tests: 20 famous datasets encoded as fixtures, asserting the engine's *decisions* against best practice. Run with `node rules.test.mjs`. |
-| `explainer.mjs` | **Business logic** *(optional)* | The optional, **tiered** LLM "explainer." `explainSections(sections)` rephrases the rules' text into plain English and **never changes a decision**. It tries Workers AI → on-device (WebLLM) → deterministic text, falling back automatically on any failure. The app is fully functional and $0 without it. |
+| `rules.test.mjs` | **Tests** | Golden-test runner: asserts the engine's *decisions* against best practice across 20 datasets. Run with `node app/rules.test.mjs`. |
+| `fixtures.mjs` | **Tests** | The 20 famous datasets encoded as profiles + answers + expected assertions, chosen for branch coverage. |
+| `explainer.mjs` | **Business logic** *(optional)* | The optional, **tiered** LLM "explainer." `explainSections(sections)` rephrases the rules' text into plain English and **never changes a decision**. It tries Workers AI → on-device (WebLLM) → deterministic text, falling back automatically on any failure. The server tier rephrases all fields; the on-device tier keeps the decision and caveat **verbatim** and rewords only the rationale, accepting it only if it stays faithful (a content-overlap guard rejects over-summaries and fact-drift). On-device is **opt-in** (a one-time model download), desktop-only (the multi-GB model would crash phones), and the choice is remembered. The app is fully functional and $0 without any of it. |
 | `functions/api/explain.js` | **Serverless** *(optional)* | A Cloudflare Pages Function that proxies to Workers AI (free tier). Holds no API key — it uses the platform's `AI` binding. Returns a non-200 on any error (incl. daily quota) so the client falls back. Swap the `MODEL` constant for Gemma, Phi, Llama, etc. |
 | `next.config.mjs` | **Config** | Static export (`output: "export"`) so `next build` emits a fully static `./out` hostable anywhere. |
+| `report.mjs` | **Tooling** | Generates the Markdown/HTML test report from the golden suite (`npm run report`). |
+| `.github/workflows/deploy.yml` | **CI/CD** | Builds the static export and publishes to GitHub Pages on every push to `main`. |
 | `DEPLOY.md` | **Docs** | Push-button deploy guide: Cloudflare Pages (recommended), Vercel, and GitHub Pages, with the Workers AI binding setup. |
 | `ml-decision-guide.pdf` / `.html` | **Reference** | The companion ML decision guide whose lifecycle, matrices, and leakage rules this engine encodes. The HTML is for screen; the PDF (with two landscape flowchart pages) is for printing/teaching. |
-| `ml-compass.jsx` | *legacy* | The original single‑file version (logic + UI bundled) used for the in‑chat live preview. Superseded by the `profiler.mjs` + `rules.mjs` + `MLCompass.jsx` split; kept only for quick preview. |
 
 ## Running it
 
-**The app (Next.js):**
+This repo **is** a ready-to-run Next.js app — just clone and start:
 
 ```bash
-npx create-next-app@latest ml-compass   # TypeScript: No, Tailwind: Yes, App Router: Yes
+git clone https://github.com/venkatviswa/ml-compass.git
 cd ml-compass
-npm install papaparse lucide-react
-npm install @mlc-ai/web-llm              # OPTIONAL — enables the on-device explainer tier
-```
-
-Copy `MLCompass.jsx`, `rules.mjs`, `profiler.mjs` (and optionally `explainer.mjs`) into
-`app/`, copy `next.config.mjs` to the project root, add `"use client";` to the top of
-`MLCompass.jsx`, then in `app/page.js`:
-
-```jsx
-import MLCompass from "./MLCompass";
-export default function Home() { return <MLCompass />; }
-```
-
-```bash
+npm install        # @mlc-ai/web-llm is an optionalDependency for the on-device tier
 npm run dev        # http://localhost:3000 (development)
 npm run build      # emits a static ./out for hosting (output: "export")
 ```
 
-To deploy (Cloudflare Pages / Vercel / GitHub Pages), see **DEPLOY.md**.
+**Deploying:**
+
+- **GitHub Pages** — pushes to `main` auto-build and publish via `.github/workflows/deploy.yml`.
+  Static only, so the explainer uses the on-device or rules tiers.
+- **Cloudflare Pages** (recommended for the LLM) — connect the repo, build command `npm run build`,
+  output dir `out`, then add a Workers AI binding named `AI`. This enables the fast server-side
+  explainer with no client download. See **DEPLOY.md** for the click-by-click walkthrough.
 
 **The tests (no framework needed):**
 
@@ -103,27 +101,33 @@ app works fully, instantly, and at **$0 with the explainer off** (the default).
 It's **tiered**, and the fallback is automatic and transparent — the user never picks
 a provider:
 
-1. **Workers AI** (`/api/explain`) — fast, no client download. Free tier is 10,000
-   neurons/day; when exhausted, the request 4xx/5xxs and the explainer moves on.
-2. **On-device** (WebLLM) — if Workers AI is unavailable *and* the browser has WebGPU,
-   a small open model (Llama 3.2 3B / Gemma 2 / Phi-3.5-mini) runs entirely in the
-   browser. No quota, no cost, private. The tradeoff is a one-time ~1–2 GB model
-   download, so the UI shows honest progress ("Workers AI busy — loading on-device
-   model… 40%") rather than silently fetching a gigabyte.
+1. **Workers AI** (`/api/explain`) — fast, no client download, works on any device
+   (incl. mobile). Free tier is 10,000 neurons/day; when exhausted, the request
+   4xx/5xxs and the explainer moves on. Rephrases all fields at once (server-side).
+2. **On-device** (WebLLM) — if Workers AI is unavailable *and* the device can run it,
+   a small open model (default **Gemma-2-2B**, ~1.6 GB; swap for Llama-3.2-3B / Phi-3.5-mini)
+   runs entirely in the browser. No quota, no cost, private. Because the model is
+   multi-GB, this tier is **opt-in** (an explicit "download model" prompt, remembered in
+   `localStorage`) and **desktop-only** (phones/tablets are excluded — the download would
+   crash the tab). It rephrases **one section per call in plain text** (robust, no fragile
+   JSON), keeps the **decision and caveat verbatim**, and rewords only the rationale —
+   accepting it only if a content-overlap guard confirms it stayed faithful. The UI shows
+   honest progress ("Downloading Gemma 2 2B Instruct… 40%", then "Rephrasing… (4/9)").
 3. **Deterministic text** — if neither is available, the rules' own wording is shown.
 
 The Bearing screen has a *Plain-English* toggle (off by default). `explainer.mjs` sends
-only the text fields, validates the response shape, and replaces *only* wording —
-keeping every decision, id, and structure from the rules. A failed or malformed
-response at any tier drops to the next one.
+only the bearing's text fields (never the dataset), and replaces *only* wording —
+keeping every decision, id, and structure from the rules. A failed, malformed, or
+unfaithful response at any tier drops to the next one (ultimately the exact rules text).
 
 **Enabling the tiers:**
 
 - *Workers AI:* deploy with the `functions/` folder, then add a Workers AI binding named
   `AI` in the Cloudflare Pages project (*Settings → Functions → Bindings*). No API key is
   stored — the function calls `env.AI.run(...)`. Change the model via the `MODEL` constant.
-- *On-device:* `npm install @mlc-ai/web-llm`. If it isn't installed, that tier is simply
-  skipped. Set the model id in `explainer.mjs` (verify it against WebLLM's prebuilt list).
+- *On-device:* `@mlc-ai/web-llm` ships as an `optionalDependency`, so `npm install` pulls it
+  in; if it's absent the tier is simply skipped. Change the model via `DEFAULT_BROWSER_MODEL`
+  in `explainer.mjs` (verify the id against WebLLM's prebuilt list).
 
 See **DEPLOY.md** for the full hosting walkthrough.
 

@@ -49,13 +49,13 @@ Three things make it different.
 
 **1. Opinionated and reasoned — not a menu.** It doesn't hand you twelve options and wish you luck. It makes a call and tells you *why*, with the caveat that would change its mind. You don't just get an answer; you get reasoning you can carry to the next dataset.
 
-**2. Rules decide; the model only explains.** This is the core, and the moat. The recommendation comes from a deterministic rules engine over your dataset's profile and your answers — *not* a language model's guess. An LLM is optional and does one job: rephrase the output into friendlier prose. It can never add, drop, or change a decision. That's the opposite of "ask ChatGPT which model to use," which gives a confident answer with no way to know if it's right. Deterministic means **auditable, reproducible, and testable**.
+**2. Rules decide; the model only explains.** This is the core, and the moat. The recommendation comes from a deterministic rules engine over your dataset's profile and your answers — *not* a language model's guess. An LLM is optional and does one job: rephrase the output into friendlier prose. It can never add, drop, or change a decision — the decision and its caveats are shown verbatim from the rules engine, and the explainer only rewords the *rationale*; if its wording drifts from the facts, the app discards it and shows the exact rules text instead. That's the opposite of "ask ChatGPT which model to use," which gives a confident answer with no way to know if it's right. Deterministic means **auditable, reproducible, and testable**.
 
 **🖼️ IMAGE 1 of 4 — upload `diagram-architecture.png` here**
 ![How ML Compass works: the dataset and your answers feed a deterministic rules engine that produces the bearing; an optional language model only rephrases it.](diagram-architecture.png)
 *The rules engine makes every call. The language model, if enabled, only rewords the output.*
 
-**3. Private, runs locally.** The dataset never leaves your browser. For consulting work on a client's data, that's not a nice-to-have — it's the difference between "I can use this" and "legal said no."
+**3. Private, runs locally.** The dataset never leaves your browser — profiling and the entire decision happen client-side. The optional plain-English explainer is tiered and degrades gracefully: it can run a small model **on-device** (a one-time, opt-in download — also fully local), or, on the hosted demo, call a serverless model that receives only the bearing's short *text* (never your data); if neither is available it simply shows the deterministic text. For consulting work on a client's data, that's not a nice-to-have — it's the difference between "I can use this" and "legal said no."
 
 ## What it isn't (and what it can't do)
 
@@ -119,7 +119,7 @@ Analysts, architects, admins, and data teams who are comfortable in AutoML or a 
 
 ## Try it
 
-ML Compass is open source and runs free, entirely in your browser — nothing leaves your machine. Point it at your next dataset *before* you click Train. Try it on Titanic, the credit-card fraud set, a churn export, or your own CSV, and see whether the bearing matches your instinct — or catches something you'd have missed.
+ML Compass is open source and free. The decision engine runs entirely in your browser, so your data stays put; the optional plain-English rephrase runs on-device too, or server-side on the hosted demo. Point it at your next dataset *before* you click Train. Try it on Titanic, the credit-card fraud set, a churn export, or your own CSV, and see whether the bearing matches your instinct — or catches something you'd have missed.
 
 **Try the prototype: [venkatviswa.github.io/ml-compass](https://venkatviswa.github.io/ml-compass)**
 **Read the rules and tests: [GitHub repo](https://github.com/venkatviswa/ml-compass)**
