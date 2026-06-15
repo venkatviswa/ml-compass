@@ -411,21 +411,28 @@ export default function MLCompass() {
               </div>
             </div>
             {useLLM && (
-              <div className="text-xs mb-4 -mt-1 flex flex-wrap items-center gap-2" style={{ ...mono, color: explainState === "rules" ? C.amber : C.inkSoft }}>
-                {explainState === "loading" && (loadMsg || "Rephrasing…")}
-                {explainState === "workers-ai" && "✓ Reworded by Workers AI — decisions unchanged."}
-                {explainState === "on-device" && "✓ Reworded on-device — decisions unchanged."}
+              <div className="mb-4 -mt-1">
+                {explainState === "loading" && <div className="text-xs" style={{ ...mono, color: C.inkSoft }}>{loadMsg || "Rephrasing…"}</div>}
+                {explainState === "workers-ai" && <div className="text-xs" style={{ ...mono, color: C.inkSoft }}>✓ Reworded by Workers AI — decisions unchanged.</div>}
+                {explainState === "on-device" && <div className="text-xs" style={{ ...mono, color: C.inkSoft }}>✓ Reworded on-device — decisions unchanged.</div>}
                 {explainState === "rules" && (
                   (!allowLLM && canRunBrowserLLM()) ? (
-                    <>
-                      <span>Server explainer unavailable — showing the deterministic rules text.</span>
+                    <div className="rounded-xl p-4 flex flex-wrap items-center justify-between gap-3" style={{ background: C.neuBg, border: `1px solid ${C.line}` }}>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm" style={disp}>Want this in plain English?</div>
+                        <div className="text-xs mt-0.5" style={{ color: C.inkSoft }}>
+                          No server explainer on this host — a small model can run in your browser to reword the text. Decisions never change. One-time ~2 GB download, cached afterward.
+                        </div>
+                      </div>
                       <button onClick={() => { setAllowLLM(true); try { localStorage.setItem("mlc:ondevice", "1"); } catch {} }}
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium"
+                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all"
                         style={{ background: C.ink, color: "#fff" }}>
-                        <Wand2 size={12} /> Rephrase on-device (one-time ~2 GB download)
+                        <Wand2 size={16} /> Download model &amp; rephrase
                       </button>
-                    </>
-                  ) : "Explainer unavailable — showing the deterministic rules text."
+                    </div>
+                  ) : (
+                    <div className="text-xs" style={{ ...mono, color: C.amber }}>Explainer unavailable — showing the deterministic rules text.</div>
+                  )
                 )}
               </div>
             )}
