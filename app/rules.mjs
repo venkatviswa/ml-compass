@@ -104,7 +104,7 @@ export function recommend(facts) {
 
   add("task", "Detected task",
     regLike ? `Supervised ${kind === "ordinal" ? "ordinal regression" : "regression"}`
-            : `Supervised classification (${task.targetType}, ${task.nClasses} classes)`,
+            : `Supervised classification (${task.nClasses === 2 ? "binary" : "multiclass"}, ${task.nClasses} classes)`,
     regLike ? (kind === "ordinal" ? "A small set of ordered numeric values — an ordinal target."
                                   : "A labeled continuous numeric target → regression.")
             : "A labeled categorical target → classification.",
@@ -115,7 +115,7 @@ export function recommend(facts) {
             : "DummyClassifier (majority class) → Logistic Regression",
     "Clear the naive floor first, then a simple model. If an ensemble can't beat these by a real margin, the framing or data is the problem.");
 
-  const usableCols = prof.cols.filter((c) => c.name !== target && !excludedCols.includes(c.name));
+  const usableCols = prof.cols.filter((c) => c.name !== target && !excludedCols.includes(c.name) && !c.idLike);
   const highCard = usableCols.filter((c) => c.dtype === "categorical" && !c.idLike && c.cardinality > HIGH_CARD).map((c) => c.name);
   let famCaveat = null;
   if (highCard.length) famCaveat = `High-cardinality categoricals (${highCard.join(", ")}): CatBoost handles them natively, otherwise leakage-safe target encoding fit inside CV folds.`;

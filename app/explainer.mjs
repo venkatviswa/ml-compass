@@ -52,8 +52,7 @@ export async function explainSections(sections, opts = {}) {
   // (and silently reloaded) under memory pressure, which would wipe the user's session.
   if (enableBrowserFallback && canRunBrowserLLM()) {
     try {
-      onStatus({ tier: "on-device", phase: "loading", progress: 0 });
-      const arr = await tryBrowser(browserModel, payload, (p) => onStatus({ tier: "on-device", phase: "loading", progress: p }));
+      const arr = await tryBrowser(browserModel, payload, (s) => onStatus({ tier: "on-device", ...s }));
       const merged = mergeRephrased(sections, arr);
       if (merged) return { sections: merged, source: "on-device" };
     } catch { /* fall through to deterministic */ }
@@ -79,14 +78,26 @@ async function tryServer(endpoint, timeoutMs, payload) {
 }
 
 let enginePromise = null;   // load the on-device model once per session
-async function tryBrowser(model, payload, onProgress) {
+let engineReady = false;
+async function tryBrowser(model, payload, onStatus) {
   const webllm = await import("@mlc-ai/web-llm");   // requires `npm i @mlc-ai/web-llm`; if absent → throws → fallback
-  if (!enginePromise) {
+  if (engineReady && enginePromise) {
+    onStatus?.({ phase: "ready", model });          // already loaded this session — no spurious "0%"
+  } else if (!enginePromise) {
+    let cached = false;
+    try { cached = webllm.hasModelInCache ? await webllm.hasModelInCache(model) : false; } catch { cached = false; }
+    onStatus?.({ phase: cached ? "loading" : "downloading", model, progress: 0 });
     enginePromise = webllm.CreateMLCEngine(model, {
-      initProgressCallback: (r) => onProgress?.(typeof r?.progress === "number" ? r.progress : undefined),
+      initProgressCallback: (r) => onStatus?.({
+        phase: cached ? "loading" : "downloading",
+        model,
+        progress: typeof r?.progress === "number" ? r.progress : undefined,
+      }),
     });
   }
   const engine = await enginePromise;
+  engineReady = true;
+  onStatus?.({ phase: "ready", model });
   const reply = await engine.chat.completions.create({
     messages: [{ role: "system", content: SYSTEM }, { role: "user", content: "Rephrase these sections:\n" + JSON.stringify(payload) }],
     temperature: 0.3,

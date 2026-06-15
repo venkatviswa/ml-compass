@@ -3,9 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  workflow_dispatch:        # lets you trigger it manually from the Actions tab
 
-# Allow GITHUB_TOKEN to deploy to Pages, and serialize concurrent runs.
 permissions:
   contents: read
   pages: write
@@ -13,27 +12,25 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
-
-      # No package-lock.json is committed, so use a plain install.
-      - run: npm install
-
-      - run: npm run build
-
-      # Static export lives in ./out; disable Jekyll so _next/ assets are served.
+      - run: npm install --no-audit --no-fund
+      # basePath/assetPrefix are injected here so the project-site URL resolves,
+      # without hard-coding the repo name into next.config.mjs
+      - name: Build (static export)
+        env:
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build
       - run: touch out/.nojekyll
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

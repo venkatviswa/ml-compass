@@ -144,10 +144,13 @@ export default function MLCompass() {
     explainSections(rec.sections, {
       onStatus: (s) => {
         if (cancelled) return;
-        if (s.tier === "workers-ai") setLoadMsg("Checking Workers AI…");
-        else if (s.tier === "on-device") setLoadMsg(s.progress != null
-          ? `Workers AI busy — loading on-device model… ${Math.round(s.progress * 100)}%`
-          : "Workers AI busy — starting on-device model…");
+        if (s.tier === "workers-ai") { setLoadMsg("Checking Workers AI…"); return; }
+        if (s.tier === "on-device") {
+          const name = (s.model || "on-device model").replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ");
+          if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
+          else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
+          else if (s.phase === "ready") setLoadMsg(`Using ${name} (on-device)…`);
+        }
       },
     }).then(({ sections, source }) => {
       if (cancelled) return;

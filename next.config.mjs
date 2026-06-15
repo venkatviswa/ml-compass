@@ -1,18 +1,16 @@
 /** @type {import('next').NextConfig} */
-// Static export: `next build` emits a fully static ./out you can host anywhere
-// (Cloudflare Pages, GitHub Pages, Netlify, S3). No Node server required — the
-// rules engine and profiler run in the browser.
+// Static export: `next build` emits a fully static ./out hostable anywhere
+// (Cloudflare Pages, GitHub Pages, Netlify, S3). No Node server required.
 //
-// The optional LLM explainer still works on a static host: the Workers AI tier
-// needs a Cloudflare Pages Function (see /functions), and the on-device tier
-// (WebLLM) runs entirely client-side, so even a pure static deploy gets explanations.
+// For GitHub Pages PROJECT sites (username.github.io/repo), the path prefix is
+// injected at build time via PAGES_BASE_PATH (set by the GitHub Actions workflow),
+// so it stays empty for local dev and root-domain hosts like Cloudflare Pages.
+const base = process.env.PAGES_BASE_PATH || "";
 const nextConfig = {
   output: "export",
-  images: { unoptimized: true },   // next/image needs this in export mode
+  images: { unoptimized: true },
   reactStrictMode: true,
-  // Deploying to a GitHub Pages *project* site (username.github.io/ml-compass),
-  // so asset paths must be prefixed with the repo name:
-  basePath: "/ml-compass",
-  assetPrefix: "/ml-compass/",
+  basePath: base,
+  assetPrefix: base || undefined,
 };
 export default nextConfig;
