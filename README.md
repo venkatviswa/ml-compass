@@ -7,6 +7,15 @@ the right evaluation metric, a validation strategy, and — most importantly —
 the **leakage risks** specific to your data. It tells you *how to think through*
 the problem, with a reason and a caveat behind every call.
 
+It's a **pre-flight checklist for ML projects** — it helps you catch leakage,
+wrong metrics, validation mistakes, and poor model framing *before* training.
+
+**▶ Try the live prototype: [venkatviswa.github.io/ml-compass](https://venkatviswa.github.io/ml-compass)**
+
+The flow is simple: frame the business decision, profile the dataset, answer a
+few context questions, then receive a deterministic *bearing* with reasons and
+caveats.
+
 ## Core principle: rules decide, explanations follow
 
 The recommendation is produced by a **deterministic rules engine** over your
