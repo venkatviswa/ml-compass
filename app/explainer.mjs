@@ -47,8 +47,10 @@ export async function explainSections(sections, opts = {}) {
     if (merged) return { sections: merged, source: "workers-ai" };
   }
 
-  // Tier 2 — on-device (WebLLM). Only if quota/server failed AND the browser can run it.
-  if (enableBrowserFallback && hasWebGPU()) {
+  // Tier 2 — on-device (WebLLM). Only if quota/server failed AND the device can actually
+  // run it. Phones/tablets are excluded: the model is multi-GB and the tab gets killed
+  // (and silently reloaded) under memory pressure, which would wipe the user's session.
+  if (enableBrowserFallback && canRunBrowserLLM()) {
     try {
       onStatus({ tier: "on-device", phase: "loading", progress: 0 });
       const arr = await tryBrowser(browserModel, payload, (p) => onStatus({ tier: "on-device", phase: "loading", progress: p }));
@@ -94,6 +96,23 @@ async function tryBrowser(model, payload, onProgress) {
 }
 
 function hasWebGPU() { return typeof navigator !== "undefined" && "gpu" in navigator; }
+
+// Gate for the on-device tier. WebGPU alone isn't enough: iOS/Android now expose
+// navigator.gpu, but loading a multi-GB model crashes the tab on phones/tablets.
+// So require WebGPU AND a non-mobile, non-low-memory device; otherwise fall back to
+// the deterministic rules text (decisions are identical — only the wording differs).
+function canRunBrowserLLM() {
+  if (!hasWebGPU()) return false;
+  const ua = navigator.userAgent || "";
+  const isMobile =
+    /Android|iPhone|iPad|iPod|Mobile|Silk/i.test(ua) ||
+    // iPadOS 13+ reports as desktop Safari but is still a tablet:
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isMobile) return false;
+  // deviceMemory is in GB (Chromium only); skip clearly under-provisioned machines.
+  if (typeof navigator.deviceMemory === "number" && navigator.deviceMemory < 4) return false;
+  return true;
+}
 
 function extractJsonArray(text) {
   const a = text.indexOf("["), b = text.lastIndexOf("]");
