@@ -1,7 +1,9 @@
 // profiler.mjs — business logic: dataset profiling, modality detection, sample data.
 // Pure functions, no React. Imported by the UI and (optionally) by tests.
 
-export const DATE_RE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2})?/;
+// Matches ISO dates (2024-01-31, optional time) and common slash dates (9/28/12,
+// 12/31/2024). Slash dates need two separators so plain fractions/ratios don't match.
+export const DATE_RE = /^(\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2})?|\d{1,2}\/\d{1,2}\/\d{2,4})/;
 
 // thresholds live here so they're easy to tune / mirror in the Python twin
 export const SMALL_N = 500;          // below this, prefer simple models + CV
