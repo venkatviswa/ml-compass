@@ -34,7 +34,7 @@ export async function onRequestPost({ request, env }) {
         { role: "system", content: SYSTEM },
         { role: "user", content: "Rephrase these sections:\n" + JSON.stringify(sections) },
       ],
-      max_tokens: 1000,
+      max_tokens: 2048,   // headroom so the JSON array isn't truncated for larger bearings
       temperature: 0.3,
     });
 
@@ -51,7 +51,13 @@ function json(obj, status) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 }
 function extractJsonArray(text) {
-  const a = text.indexOf("["), b = text.lastIndexOf("]");
-  if (a === -1 || b === -1 || b <= a) return null;
-  try { const v = JSON.parse(text.slice(a, b + 1)); return Array.isArray(v) ? v : null; } catch { return null; }
+  const a = text.indexOf("[");
+  if (a === -1) return null;
+  const parse = (s) => { try { const v = JSON.parse(s); return Array.isArray(v) ? v : null; } catch { return null; } };
+  const b = text.lastIndexOf("]");
+  if (b > a) { const v = parse(text.slice(a, b + 1)); if (v) return v; }
+  // salvage a truncated reply: close the array after the last complete object
+  const lastObj = text.lastIndexOf("}");
+  if (lastObj > a) { const v = parse(text.slice(a, lastObj + 1) + "]"); if (v) return v; }
+  return null;
 }
