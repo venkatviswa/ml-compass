@@ -155,7 +155,7 @@ export default function MLCompass() {
           if (s.phase === "init") setLoadMsg("Preparing the on-device model…");
           else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~2 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
           else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
-          else if (s.phase === "ready") setLoadMsg(`Using ${name} (on-device)…`);
+          else if (s.phase === "ready") setLoadMsg(`Rephrasing with ${name} (on-device)… this can take up to a minute; the rules text shows until it's done.`);
         }
       },
     }).then(({ sections, source }) => {
