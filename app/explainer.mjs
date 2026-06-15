@@ -11,11 +11,11 @@
 
 const DEFAULT_ENDPOINT = "/api/explain";
 const DEFAULT_TIMEOUT_MS = 8000;
-// On-device model for the browser tier. 3B gives nicer prose; swap to a smaller id
-// here for faster loads. Verify ids against WebLLM's prebuilt list.
-// Alternatives: "Llama-3.2-1B-Instruct-q4f16_1-MLC", "gemma-2-2b-it-q4f16_1-MLC",
-// "Phi-3.5-mini-instruct-q4f16_1-MLC".
-const DEFAULT_BROWSER_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+// On-device model for the browser tier. Gemma-2-2B follows simple formatting well and
+// is a good size/quality/speed balance (~1.6 GB). Swap the id here to try others.
+// Alternatives: "Llama-3.2-3B-Instruct-q4f16_1-MLC", "Phi-3.5-mini-instruct-q4f16_1-MLC",
+// "Llama-3.2-1B-Instruct-q4f16_1-MLC". Verify ids against WebLLM's prebuilt list.
+const DEFAULT_BROWSER_MODEL = "gemma-2-2b-it-q4f16_1-MLC";
 
 // Server (Workers AI) tier rephrases all sections at once and returns JSON.
 const SYSTEM = [
@@ -30,16 +30,23 @@ const SYSTEM = [
 
 // On-device tier rephrases ONE section per call in plain text (no JSON). Small models
 // produce plain lines far more reliably than strict JSON, and a per-section failure
-// can't poison the others.
+// can't poison the others. A one-shot example keeps the format from drifting.
 const SECTION_SYSTEM = [
-  "You reword one machine-generated ML recommendation into clear, warm, plain English.",
-  "RULES:",
-  "- Keep every model name, metric, number, and column name exactly as given.",
-  "- Reword only for clarity and tone. 1–2 sentences per field.",
-  "- Output EXACTLY these three lines and nothing else (no JSON, no extra prose):",
-  "DECISION: <reworded decision>",
-  "WHY: <reworded reason>",
-  'CAVEAT: <reworded caveat, or "-" if none>',
+  "You rewrite one machine-generated ML recommendation in clear, friendly plain English.",
+  "Keep every model name, metric, number, and column name exactly as given.",
+  "Reply with EXACTLY these three lines and nothing else. Do NOT repeat the words DECISION, WHY, or CAVEAT inside your sentences:",
+  "DECISION: <one short sentence>",
+  "WHY: <one or two short sentences>",
+  'CAVEAT: <one short sentence, or "-" if the input caveat is "-">',
+  "",
+  "Example input:",
+  "DECISION: Supervised regression",
+  "WHY: A labeled continuous numeric target.",
+  "CAVEAT: -",
+  "Example output:",
+  "DECISION: This is a regression problem.",
+  "WHY: We're predicting a continuous number, so regression fits.",
+  "CAVEAT: -",
 ].join("\n");
 
 /**
@@ -52,6 +59,7 @@ export async function explainSections(sections, opts = {}) {
     enableBrowserFallback = true,
     browserModel = DEFAULT_BROWSER_MODEL,
     onStatus = () => {},
+    shouldStop = () => false,   // lets the caller abort a stale on-device run (e.g. toggled off)
   } = opts;
 
   const payload = sections.map((s) => ({ id: s.id, title: s.title, decision: s.decision, reason: s.reason, caveat: s.caveat || "" }));
@@ -72,7 +80,7 @@ export async function explainSections(sections, opts = {}) {
       // Emit immediately: the WebLLM library import + cache check below are slow, and
       // without this the UI would stay frozen on the stale "Checking Workers AI…" label.
       onStatus({ tier: "on-device", phase: "init" });
-      const merged = await tryBrowser(browserModel, sections, (s) => onStatus({ tier: "on-device", ...s }));
+      const merged = await tryBrowser(browserModel, sections, (s) => onStatus({ tier: "on-device", ...s }), shouldStop);
       if (merged) return { sections: merged, source: "on-device" };
     } catch { /* fall through to deterministic */ }
   }
@@ -98,10 +106,12 @@ async function tryServer(endpoint, timeoutMs, payload) {
 
 let enginePromise = null;   // load the on-device model once per session
 let engineReady = false;
+let genLock = Promise.resolve();   // serialize generation: WebLLM runs one request at a time
 
 // Returns merged sections (originals reworded where the model gave usable text) or null
 // if nothing could be reworded. Rephrases one section per call in plain text.
-async function tryBrowser(model, sections, onStatus) {
+// shouldStop() lets a stale run (e.g. the toggle was switched off) bail cleanly.
+async function tryBrowser(model, sections, onStatus, shouldStop = () => false) {
   const webllm = await import("@mlc-ai/web-llm");   // requires `npm i @mlc-ai/web-llm`; if absent → throws → fallback
   if (!engineReady || !enginePromise) {
     let cached = false;
@@ -120,24 +130,31 @@ async function tryBrowser(model, sections, onStatus) {
   const engine = await enginePromise;
   engineReady = true;
 
-  let reworded = 0;
-  const out = [];
-  for (let i = 0; i < sections.length; i++) {
-    const s = sections[i];
-    onStatus?.({ phase: "rephrasing", model, index: i + 1, total: sections.length });
-    let merged = s;
-    try {
-      const reply = await engine.chat.completions.create({
-        messages: [{ role: "system", content: SECTION_SYSTEM }, { role: "user", content: sectionToText(s) }],
-        temperature: 0.3,
-        max_tokens: 256,   // one short section — no room to run away or truncate mid-array
-      });
-      merged = applyRephrase(s, reply?.choices?.[0]?.message?.content || "");
-      if (merged.decision !== s.decision || merged.reason !== s.reason || merged.caveat !== s.caveat) reworded++;
-    } catch { merged = s; }   // a single bad section keeps its deterministic text
-    out.push(merged);
-  }
-  return reworded ? out : null;
+  // Serialize the per-section loop behind genLock so a re-toggle can't run a second
+  // generation concurrently against the single engine (which throws and looks "unavailable").
+  const run = genLock.then(async () => {
+    let reworded = 0;
+    const out = [];
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i];
+      if (shouldStop()) { out.push(s); continue; }   // stale run — keep originals, finish fast
+      onStatus?.({ phase: "rephrasing", model, index: i + 1, total: sections.length });
+      let merged = s;
+      try {
+        const reply = await engine.chat.completions.create({
+          messages: [{ role: "system", content: SECTION_SYSTEM }, { role: "user", content: sectionToText(s) }],
+          temperature: 0.2,
+          max_tokens: 256,   // one short section — can't truncate the whole reply
+        });
+        merged = applyRephrase(s, reply?.choices?.[0]?.message?.content || "");
+        if (merged.decision !== s.decision || merged.reason !== s.reason || merged.caveat !== s.caveat) reworded++;
+      } catch { merged = s; }   // a single bad section keeps its deterministic text
+      out.push(merged);
+    }
+    return reworded ? out : null;
+  });
+  genLock = run.then(() => {}, () => {});   // chain next run after this one, success or fail
+  return run;
 }
 
 function sectionToText(s) {
@@ -145,18 +162,27 @@ function sectionToText(s) {
 }
 
 // Pull DECISION/WHY/CAVEAT lines from a plain-text reply; keep the original on anything
-// missing, blank, or "-". Decisions are never invented — only reworded text replaces text.
+// missing, blank, "-", or implausible. The sanity guard rejects run-on / merged output
+// (e.g. a model that crams decision+why+"Caveat:" onto one line) so garbage never shows.
 function applyRephrase(s, text) {
   const grab = (label) => {
     const m = text.match(new RegExp("^\\s*" + label + "\\s*:\\s*(.+)$", "im"));
     return m ? m[1].trim() : "";
   };
-  const keep = (v, fb) => (v && v.trim() && v.trim() !== "-" ? v.trim() : fb);
+  // candidate is accepted only if it's non-empty, not a placeholder, doesn't echo the
+  // field labels, and isn't wildly longer than the original (a sign it merged fields).
+  const sane = (candidate, original, maxFactor) => {
+    const v = (candidate || "").trim();
+    if (!v || v === "-") return original;
+    if (/\b(decision|why|caveat)\s*:/i.test(v)) return original;   // leaked a field label
+    if (v.length > original.length * maxFactor + 40) return original;
+    return v;
+  };
   return {
     ...s,
-    decision: keep(grab("DECISION"), s.decision),
-    reason: keep(grab("WHY"), s.reason),
-    caveat: s.caveat ? keep(grab("CAVEAT"), s.caveat) : "",
+    decision: sane(grab("DECISION"), s.decision, 2),
+    reason: sane(grab("WHY"), s.reason, 2.5),
+    caveat: s.caveat ? sane(grab("CAVEAT"), s.caveat, 2.5) : "",
   };
 }
 

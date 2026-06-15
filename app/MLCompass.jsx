@@ -147,13 +147,14 @@ export default function MLCompass() {
     setExplainState("loading"); setLoadMsg("Checking Workers AI…");
     explainSections(rec.sections, {
       enableBrowserFallback: allowLLM,   // on-device download only after explicit opt-in
+      shouldStop: () => cancelled,       // abort a stale on-device run if the toggle changes
       onStatus: (s) => {
         if (cancelled) return;
         if (s.tier === "workers-ai") { setLoadMsg("Checking Workers AI…"); return; }
         if (s.tier === "on-device") {
           const name = (s.model || "on-device model").replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ");
           if (s.phase === "init") setLoadMsg("Preparing the on-device model…");
-          else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~0.9 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
+          else if (s.phase === "downloading") setLoadMsg(`Downloading ${name} (one-time, ~1.6 GB)…${s.progress != null ? " " + Math.round(s.progress * 100) + "%" : ""}`);
           else if (s.phase === "loading") setLoadMsg(`Loading ${name} (on-device)…`);
           else if (s.phase === "rephrasing") setLoadMsg(`Rephrasing on-device with ${name}… (${s.index}/${s.total}) — rules text shows until done.`);
         }
@@ -421,7 +422,7 @@ export default function MLCompass() {
                       <div className="min-w-0">
                         <div className="font-semibold text-sm" style={disp}>Want this in plain English?</div>
                         <div className="text-xs mt-0.5" style={{ color: C.inkSoft }}>
-                          No server explainer on this host — a small model can run in your browser to reword the text. Decisions never change. One-time ~0.9 GB download, cached afterward.
+                          No server explainer on this host — a small model can run in your browser to reword the text. Decisions never change. One-time ~1.6 GB download, cached afterward.
                         </div>
                       </div>
                       <button onClick={() => { setAllowLLM(true); try { localStorage.setItem("mlc:ondevice", "1"); } catch {} }}
