@@ -1,0 +1,12 @@
+# Cloudflare Pages configuration.
+#
+# ML Compass is a STATIC export (next.config.mjs → output: "export") plus a single
+# Pages Function (functions/api/explain.js → POST /api/explain, Workers AI).
+# So it deploys on the classic Pages static pipeline — NOT the Next.js/OpenNext
+# (Workers, SSR) adapter, which expects a .next/standalone server build we don't produce.
+#
+# `pages_build_output_dir` is the marker that tells Cloudflare this is a Pages project
+# serving the prebuilt ./out directory; the functions/ folder is picked up automatically.
+name = "ml-compass"
+pages_build_output_dir = "out"
+compatibility_date = "2024-11-01"
