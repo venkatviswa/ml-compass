@@ -40,7 +40,7 @@ export function recommend(facts) {
   if (task === null) {
     const m = {
       cluster: ["Unsupervised → Clustering", "No target column; goal is grouping similar records.",
-        "KMeans for round clusters; DBSCAN/HDBSCAN for irregular shapes or noise; GMM for soft membership. Scale first."],
+        "KMeans for round clusters; DBSCAN/HDBSCAN for irregular shapes or noise; GMM for soft membership; hierarchical clustering (dendrogram) for small data with nested structure and no preset K. Scale first."],
       reduce: ["Unsupervised → Dimensionality reduction", "No target; goal is compressing or visualizing the space.",
         "PCA for linear compression; UMAP/t-SNE for 2D/3D visualization only."],
       anomaly: ["Unsupervised → Anomaly detection", "No target; goal is surfacing rare rows.",
@@ -83,7 +83,7 @@ export function recommend(facts) {
     add("baseline", "Baseline ladder",
       isClf ? "DummyClassifier → TF-IDF + Logistic Regression / Multinomial Naive Bayes" : "DummyRegressor → TF-IDF + linear model",
       "Fast, strong text baselines; beat these before reaching for transformers.");
-    add("models", "Model families", "TF-IDF + linear / Naive Bayes → embeddings or a fine-tuned transformer only if the baseline falls short",
+    add("models", "Model families", "TF-IDF + linear / Naive Bayes (a linear SVM is strong on small, high-dimensional text) → embeddings or a fine-tuned transformer only if the baseline falls short",
       "Transformers help, but a cheap baseline must set the bar first.");
     add("fe", "Feature work", "TF-IDF / counts, n-grams, length & keyword flags; embeddings later",
       "Text features replace column engineering.");

@@ -30,6 +30,10 @@ This is the deliberate counter‑position to "ask a chatbot which model to use":
 the model that gives you confident wrong advice is exactly the failure mode this
 design removes.
 
+> 📋 **[docs/engine-rules.md](docs/engine-rules.md)** — the full human-readable spec
+> of every rule the engine follows (conditions, thresholds, and how its choices map
+> to a practitioner's algorithm field guide).
+
 ## How it works — four stages
 
 1. **Frame** — state the decision the prediction will drive, then upload a CSV
@@ -61,6 +65,7 @@ design removes.
 | `functions/api/explain.js` | **Serverless** *(optional)* | A Cloudflare Pages Function that proxies to Workers AI (free tier). Holds no API key — it uses the platform's `AI` binding. Returns a non-200 on any error (incl. daily quota) so the client falls back. Swap the `MODEL` constant for Gemma, Phi, Llama, etc. |
 | `next.config.mjs` | **Config** | Static export (`output: "export"`) so `next build` emits a fully static `./out` hostable anywhere. |
 | `report.mjs` | **Tooling** | Generates the Markdown/HTML test report from the golden suite (`npm run report`). |
+| `docs/engine-rules.md` | **Docs** | Human-readable spec of every rule the engine follows, plus its algorithm coverage vs a practitioner field guide. |
 | `.github/workflows/deploy.yml` | **CI/CD** | Builds the static export and publishes to GitHub Pages on every push to `main`. |
 | `DEPLOY.md` | **Docs** | Push-button deploy guide: Cloudflare Pages (recommended), Vercel, and GitHub Pages, with the Workers AI binding setup. |
 | `ml-decision-guide.pdf` / `.html` | **Reference** | The companion ML decision guide whose lifecycle, matrices, and leakage rules this engine encodes. The HTML is for screen; the PDF (with two landscape flowchart pages) is for printing/teaching. |
