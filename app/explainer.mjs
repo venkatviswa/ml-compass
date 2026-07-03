@@ -169,10 +169,9 @@ function preservesContent(original, candidate) {
   return kept / orig.length >= 0.45;
 }
 
-// The model returns just the reworded rationale. Keep decision + caveat verbatim (those
-// are the precise recommendation). Accept the new rationale only if it's clean and faithful
-// (keeps the original's key terms); otherwise keep the original — never corrupt the bearing.
-function applyRephrase(s, text) {
+// Single policy point for accepting a reworded rationale, whatever tier produced it.
+// Returns the cleaned rewording, or null to keep the deterministic text.
+function faithfulRewording(originalReason, text) {
   let v = (text || "").trim();
   v = v.replace(/^(rationale|why|answer|decision)\s*:\s*/i, "").trim();   // strip a stray label
   v = v.replace(/^["'“]+|["'”]+$/g, "").trim();                           // strip wrapping quotes
@@ -180,9 +179,16 @@ function applyRephrase(s, text) {
   const ok =
     v &&
     !/\b(decision|why|caveat|rationale)\s*:/i.test(v) &&                  // didn't echo labels
-    v.length <= s.reason.length * 2.5 + 60 &&                            // not a run-on
-    preservesContent(s.reason, v);                                        // kept the key facts
-  return { ...s, reason: ok ? v : s.reason };   // decision & caveat unchanged
+    v.length <= originalReason.length * 2.5 + 60 &&                      // not a run-on
+    preservesContent(originalReason, v);                                  // kept the key facts
+  return ok ? v : null;
+}
+
+// The model returns just the reworded rationale. Keep decision + caveat verbatim (those
+// are the precise recommendation); otherwise keep the original — never corrupt the bearing.
+function applyRephrase(s, text) {
+  const v = faithfulRewording(s.reason, text);
+  return { ...s, reason: v || s.reason };   // decision & caveat unchanged
 }
 
 function hasWebGPU() { return typeof navigator !== "undefined" && "gpu" in navigator; }
@@ -204,10 +210,11 @@ export function canRunBrowserLLM() {
   return true;
 }
 
-// Only text fields are replaced; id / title / tone / order come from the originals.
-// Partial merge: sections the model dropped or mangled keep their deterministic text,
-// so a small/imperfect model still rewords what it can instead of failing wholesale.
-// Returns null only if NOTHING was reworded (then the caller falls back to rules).
+// Merge for the server (Workers AI) tier. The verbatim-decision policy is enforced HERE,
+// at the client boundary, so it holds for any provider: decision and caveat always come
+// from the rules engine untouched; only the rationale may be replaced, and only when the
+// faithfulness guard accepts it. Sections the model dropped or mangled keep their
+// deterministic text. Returns null only if NOTHING was reworded (caller falls back).
 function mergeRephrased(original, data) {
   const arr = Array.isArray(data) ? data : data?.sections;
   if (!Array.isArray(arr) || !arr.length) return null;
@@ -215,11 +222,10 @@ function mergeRephrased(original, data) {
   let reworded = 0;
   const out = original.map((s) => {
     const r = byId.get(s.id);
-    if (!r) return s;
-    const keep = (v, fb) => (typeof v === "string" && v.trim() ? v.trim() : fb);
-    const merged = { ...s, decision: keep(r.decision, s.decision), reason: keep(r.reason, s.reason), caveat: s.caveat ? keep(r.caveat, s.caveat) : "" };
-    if (merged.decision !== s.decision || merged.reason !== s.reason || merged.caveat !== s.caveat) reworded++;
-    return merged;
+    const v = r ? faithfulRewording(s.reason, r.reason) : null;
+    if (!v || v === s.reason) return s;
+    reworded++;
+    return { ...s, reason: v };   // decision & caveat verbatim, same as the on-device tier
   });
   return reworded ? out : null;
 }

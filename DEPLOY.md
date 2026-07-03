@@ -7,56 +7,39 @@ works via the on-device (WebLLM) tier or falls back to the deterministic text.
 
 ## Project setup (once)
 
+This repo **is** the ready-to-run app — clone and build:
+
 ```bash
-npx create-next-app@latest ml-compass     # TypeScript: No · Tailwind: Yes · App Router: Yes
+git clone https://github.com/venkatviswa/ml-compass.git
 cd ml-compass
-npm install papaparse lucide-react
-npm install @mlc-ai/web-llm               # OPTIONAL — enables the on-device explainer tier
-```
-
-Copy the project files into place:
-
-```
-app/
-  page.js              → import MLCompass from "./MLCompass"; export default ...
-  MLCompass.jsx        ("use client"; as the first line)
-  rules.mjs
-  profiler.mjs
-  explainer.mjs        (optional explainer)
-functions/
-  api/explain.js       (optional Workers AI proxy — Cloudflare only)
-next.config.mjs        (output: "export")
-```
-
-`app/page.js`:
-
-```jsx
-import MLCompass from "./MLCompass";
-export default function Home() { return <MLCompass />; }
-```
-
-Build the static site:
-
-```bash
+npm install        # @mlc-ai/web-llm is an optionalDependency (on-device explainer tier)
 npm run build      # with output:"export", emits ./out
 ```
+
+Path prefixing is automatic: `next.config.mjs` reads `PAGES_BASE_PATH` at build time
+(set by CI for GitHub Pages project sites; left unset for root-domain hosts like
+Cloudflare or Vercel) — nothing to edit by hand.
 
 ---
 
 ## Option A — Cloudflare Pages  (recommended: free, commercial-OK, unlimited bandwidth, runs the Workers AI tier)
 
 1. Push the repo to GitHub.
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
+2. Cloudflare dashboard → **Workers & Pages → Create → *Pages* tab → Connect to Git** → pick the repo.
 3. Build settings:
-   - **Framework preset:** Next.js (Static HTML Export) — or "None"
+   - **Framework preset:** **None** — do *not* pick "Next.js": that routes through the
+     OpenNext/Workers adapter, which expects a server build and fails on this static
+     export (`ENOENT .next/standalone/...`). The repo's `wrangler.toml`
+     (`pages_build_output_dir = "out"`) pins the classic static pipeline.
    - **Build command:** `npm run build`
    - **Build output directory:** `out`
+   - **Environment variable:** `NODE_VERSION` = `20` (don't set `PAGES_BASE_PATH`)
 4. Deploy. The top-level `functions/` directory is picked up automatically, so
    `POST /api/explain` is live.
 5. **To enable the Workers AI explainer** (free): project → **Settings → Functions →
    Bindings → Add → AI**, name it `AI`. No API key needed. Free tier is
-   10,000 neurons/day; when exhausted, the app transparently switches to the on-device
-   tier (if WebLLM is installed) and then to the deterministic text.
+   10,000 neurons/day; when exhausted, the app falls back to the deterministic text
+   (or the opt-in on-device tier, if the visitor enabled it on a capable desktop).
 6. (Optional) **Custom domain** under the project's Domains tab.
 
 > Without the AI binding, `/api/explain` returns 503 → the explainer simply uses the
@@ -74,12 +57,13 @@ npm run build      # with output:"export", emits ./out
      Route Handler at `app/api/explain/route.js` calling your chosen provider (Groq,
      Google AI Studio, etc.).
 
-## Option C — GitHub Pages  (pure static, zero server)
+## Option C — GitHub Pages  (pure static, zero server — already wired up)
 
-1. Set `basePath`/`assetPrefix` in `next.config.mjs` to your repo name (see the comments there).
-2. `npm run build`, then publish the `out/` directory (e.g. via the `actions/deploy-pages` workflow).
-3. No server tier exists here, so the explainer uses the on-device tier (WebLLM) or the
-   deterministic text. The core app is fully functional.
+1. Already configured: `.github/workflows/deploy.yml` builds and publishes on every
+   push to `main`, injecting `PAGES_BASE_PATH=/<repo>` so project-site asset paths
+   resolve. One-time: repo **Settings → Pages → Source: GitHub Actions**.
+2. No server tier exists here, so the explainer uses the opt-in on-device tier (WebLLM,
+   desktop only) or the deterministic text. The core app is fully functional.
 
 ---
 
