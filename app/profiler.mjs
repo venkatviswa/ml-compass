@@ -48,6 +48,8 @@ export function profile(rows) {
       const v = r[c];
       if (v === "" || v === null || v === undefined) { missing++; continue; }
       nonEmpty++; uniq.add(String(v)); totalLen += String(v).length;
+      // Strict numeric: parseFloat handles the leading numeric run; isFinite(v) coerces via Number(v)
+      // and rejects trailing junk like "1.5abc", so both checks together mean "the whole value is a finite number".
       if (!isNaN(parseFloat(v)) && isFinite(v)) numeric++;
       if (DATE_RE.test(String(v))) dateHits++;
     }
