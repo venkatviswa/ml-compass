@@ -83,3 +83,5 @@ const htmlDoc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 </div></body></html>`;
 writeFileSync("test-report.html", htmlDoc);
 console.log(`${passCount}/${rows.length} datasets · ${totalAssertions} assertions · wrote test-report.html + test-report.md`);
+// Exit non-zero on any dataset failure so CI can gate on `node report.mjs` too — not just rules.test.mjs.
+process.exit(passCount === rows.length ? 0 : 1);
