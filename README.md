@@ -163,6 +163,13 @@ Transaction.
   or text is a judgment call, so the app *asks you to confirm* rather than guessing.
 - **Thresholds are heuristics.** `SMALL_N` (<500 rows), `HIGH_CARD` (>30 levels),
   and `ORDINAL_MAX` (≤15 target values) live in `profiler.mjs` and are meant to be tuned.
+- **Leakage detection is a name-based prior, not proof.** `LEAKY_RE` in `rules.mjs`
+  flags columns whose *names* match words like `total`, `final`, `outcome`, `result`,
+  `paid`, `settle`, `tip`, `duration`, `dropoff_time`, `completed`. That will
+  false-positive on innocent names (`final_score` in a game, `duration_since_signup`,
+  `result_page_visited`) and it will miss leakage hidden under bland names. That's
+  why the *"known at prediction time"* toggles are the real defense — the regex just
+  puts a warning at the top of the pile.
 - **No model is trained.** This is an advisor; it produces the plan, not the fitted model.
 
 ## Roadmap
