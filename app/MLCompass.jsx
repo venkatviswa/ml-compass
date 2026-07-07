@@ -349,7 +349,10 @@ export default function MLCompass() {
                 <p className="text-sm mb-4" style={{ color: C.inkSoft }}>The single most important leakage guard. Suspicious names are pre-unchecked — confirm them.</p>
                 <div className="flex flex-wrap gap-2">
                   {prof.cols.filter((c) => c.name !== target).map((c) => (
-                    <button key={c.name} onClick={() => setKnown({ ...known, [c.name]: !known[c.name] })} className="px-3 py-1.5 rounded-lg text-sm inline-flex items-center gap-1.5"
+                    <button key={c.name} onClick={() => setKnown({ ...known, [c.name]: !known[c.name] })}
+                      aria-pressed={!!known[c.name]}
+                      aria-label={`${c.name}: ${known[c.name] ? "known at prediction time" : "excluded — not known at prediction time"}`}
+                      className="px-3 py-1.5 rounded-lg text-sm inline-flex items-center gap-1.5"
                       style={{ ...mono, background: known[c.name] ? C.goodBg : C.badBg, color: known[c.name] ? C.good : C.bad, border: `1px solid ${known[c.name] ? "#bfe6c9" : "#f1c7c7"}` }}>
                       {known[c.name] ? <Check size={13} /> : <XCircle size={13} />} {c.name}
                     </button>
