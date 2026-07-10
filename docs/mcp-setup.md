@@ -80,6 +80,57 @@ For unsupervised data, just omit the target ("there's no target column; I want
 customer segments") — the engine asks one question (cluster / reduce / anomaly)
 and returns the matching plan.
 
+### What you should see (real output, abridged)
+
+`list_questions` — Titanic's `Survived` is numeric 0/1, so the engine refuses to
+assume classification and asks; note the warning that the question set grows:
+
+```json
+{
+  "task": { "kind": "regression", "targetType": "ordinal",
+            "framingAmbiguous": true, "nClasses": 2, "imbalance": 0.384 },
+  "questions": [
+    { "key": "framing",
+      "question": "The numeric target has few distinct values — model it as regression, classification, or ordinal?",
+      "options": ["regression", "classification", "ordinal"], "answered": false },
+    "… timeDependent, interpretability, regulated …"
+  ],
+  "note": "If framing is answered \"classification\", these questions ALSO apply: needsProbs, errorCost. Re-call list_questions with your answers to get the final set before get_bearing."
+}
+```
+
+`get_bearing` (answers: classification, probabilities needed, equal error cost;
+excluded `PassengerId`, `Name`, `Ticket`) — every section is decision · reason ·
+caveat, and the top-level `note` tells the agent to quote decisions verbatim:
+
+```json
+{
+  "note": "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model. When summarizing for the user, quote each section's decision verbatim (do not substitute metrics or model names); only the reasons may be paraphrased.",
+  "sections": [
+    { "id": "task",     "decision": "Supervised classification (binary, 2 classes)",
+      "reason": "A labeled categorical target → classification." },
+    { "id": "metrics",  "decision": "F1 / ROC-AUC · per-class precision & recall",
+      "reason": "Reasonably balanced classes; standard classification metrics apply." },
+    { "id": "leakage",  "decision": "2 flags",
+      "reason": "Excluded as unknown at prediction time: PassengerId, Name, Ticket. Fit every imputer, scaler and encoder inside CV folds." },
+    { "id": "calibration", "decision": "Required — reliability curve + Platt/isotonic",
+      "reason": "Outputs are used as scores, so the probability itself must be trustworthy.",
+      "caveat": "Check Brier score alongside the curve." },
+    "… baseline, models, pca, fe, validation …"
+  ]
+}
+```
+
+And if the agent skips relevant questions (say it never asked about probabilities),
+the response says so instead of assuming silently:
+
+```json
+"unansweredQuestions": {
+  "keys": ["needsProbs", "errorCost"],
+  "note": "These questions were relevant but unanswered — the bearing assumes defaults. Answer them (see list_questions) for a sharper bearing."
+}
+```
+
 ### Poking at it directly (optional)
 
 The MCP Inspector gives you a browser UI to call tools by hand:

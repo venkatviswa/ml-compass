@@ -107,7 +107,32 @@ Twenty-one datasets, seventy-seven assertions, zero failures — and when I add 
 
 There's an irony in this article: it argues you shouldn't ask a chatbot which model to use — yet the "person" most likely to be handed your CSV next *is* an AI agent. So the newest piece of ML Compass makes peace between the two. The engine is exposed over the **Model Context Protocol (MCP)** — the open standard that lets agents like Claude call tools — so the agent doesn't guess anymore; **it asks the rules engine.**
 
-The flow mirrors the app. The agent profiles your CSV, relays the few questions the data can't answer (you answer right in the chat), and receives the same bearing — decision, reason, caveat per section — as structured data it then walks you through. The tool response even instructs the agent to quote every decision verbatim; in live testing that guard earned its keep, catching a summarizer that had quietly swapped "ROC-AUC" for "accuracy."
+The flow mirrors the app. The agent profiles your CSV, relays the few questions the data can't answer (you answer right in the chat), and receives the same bearing — decision, reason, caveat per section — as structured data it then walks you through. Here's what the agent actually receives — real output from the Kaggle Titanic set, abridged:
+
+```json
+{
+  "note": "Every decision below came from deterministic rules over the dataset
+           profile and the answers — not from a language model. When summarizing
+           for the user, quote each section's decision verbatim…",
+  "sections": [
+    { "title": "Detected task",
+      "decision": "Supervised classification (binary, 2 classes)",
+      "reason": "A labeled categorical target → classification." },
+    { "title": "Evaluation metrics",
+      "decision": "F1 / ROC-AUC · per-class precision & recall",
+      "reason": "Reasonably balanced classes; standard classification metrics apply." },
+    { "title": "Leakage check",
+      "decision": "2 flags",
+      "reason": "Excluded as unknown at prediction time: PassengerId, Name, Ticket.
+                 Fit every imputer, scaler and encoder inside CV folds." },
+    { "title": "Probability calibration",
+      "decision": "Required — reliability curve + Platt/isotonic",
+      "caveat": "Check Brier score alongside the curve." }
+  ]
+}
+```
+
+That `note` instructing the agent to quote decisions verbatim isn't decoration — in live testing it earned its keep, catching a summarizer that had quietly swapped "ROC-AUC" for "accuracy." And if the agent skips a relevant question, the response comes back with an `unansweredQuestions` field naming exactly what was assumed — silent defaults aren't a thing.
 
 The part I care most about: the **local server keeps the privacy story fully intact**. It runs on your machine, reads the CSV from your own disk, and makes zero network calls — there is no LLM inside it at all. The only model in the loop is the agent you're already talking to; every *decision* comes from the deterministic engine. Unplug the internet and the bearing is byte-for-byte identical. That's the "rules decide, models explain" claim in its purest form — now in a shape your agent can use. (There's also a hosted variant for agents that already hold a dataset's computed profile — it accepts the facts only, never raw rows.)
 
