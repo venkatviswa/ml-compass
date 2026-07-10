@@ -26,6 +26,11 @@ Cloudflare or Vercel) — nothing to edit by hand.
 
 1. Push the repo to GitHub.
 2. Cloudflare dashboard → **Workers & Pages → Create → *Pages* tab → Connect to Git** → pick the repo.
+   ⚠️ The default "Create application" flow is the **Workers** wizard — wrong for this
+   app. The tell: the Workers wizard asks for a **"Deploy command"** (`npx wrangler
+   deploy`); the correct **Pages** wizard asks for a **"Build output directory"** and
+   has no deploy-command field. If you don't see a Pages tab, look for a "Looking to
+   deploy Pages?" link at the bottom of the create screen.
 3. Build settings:
    - **Framework preset:** **None** — do *not* pick "Next.js": that routes through the
      OpenNext/Workers adapter, which expects a server build and fails on this static
@@ -36,14 +41,32 @@ Cloudflare or Vercel) — nothing to edit by hand.
    - **Environment variable:** `NODE_VERSION` = `20` (don't set `PAGES_BASE_PATH`)
 4. Deploy. The top-level `functions/` directory is picked up automatically, so
    `POST /api/explain` is live.
-5. **To enable the Workers AI explainer** (free): project → **Settings → Functions →
-   Bindings → Add → AI**, name it `AI`. No API key needed. Free tier is
+5. **The Workers AI binding is already configured** — `wrangler.toml` declares
+   `[ai] binding = "AI"`, which applies automatically on every deploy. (Because the
+   repo has a `wrangler.toml`, the dashboard's binding UI is greyed out by design:
+   the file is the single source of truth.) No API key needed. Free tier is
    10,000 neurons/day; when exhausted, the app falls back to the deterministic text
    (or the opt-in on-device tier, if the visitor enabled it on a capable desktop).
 6. (Optional) **Custom domain** under the project's Domains tab.
 
 > Without the AI binding, `/api/explain` returns 503 → the explainer simply uses the
 > on-device tier or the rules text. Nothing breaks.
+
+**Debugging the explainer tier** — one fetch from the browser console on the site
+tells you everything:
+
+```js
+fetch('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({sections:[{id:'t',title:'T',decision:'D',reason:'R',caveat:''}]})})
+.then(r=>r.text().then(t=>console.log('STATUS', r.status, 'BODY', t)))
+```
+
+- **503** `no AI binding configured` → the deployment predates the `[ai]` binding.
+- **502** → the binding works but the model call failed; the body lists each model in
+  the `MODELS` list with its error (Workers AI deprecates ids over time — update the
+  list in `functions/api/explain.js` against the live catalog).
+- **200** with a JSON array → the server tier is healthy; if the app still falls back,
+  hard-refresh (stale client bundle) or check the browser console for a timeout.
 
 ## Option B — Vercel  (easiest Next.js deploy; note the caveats)
 

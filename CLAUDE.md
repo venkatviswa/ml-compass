@@ -48,9 +48,21 @@ npm run report   # regenerate the test report in docs/
 ## Deploy targets
 
 - **GitHub Pages** — automatic on push to `main` via `.github/workflows/deploy.yml`.
-- **Cloudflare Pages** — framework preset **None** (never the Next.js/OpenNext preset —
-  it expects a server build and fails), build `npm run build`, output `out`,
-  Workers AI binding named exactly `AI`. `wrangler.toml` pins the static pipeline.
+- **Cloudflare Pages** (`ml-compass.pages.dev`) — auto-builds on push to `main`.
+  Gotchas that have already burned us once (full walkthrough in `DEPLOY.md`):
+  - Create under the **Pages** wizard, never the Workers one. Tell-tale: the Workers
+    wizard asks for a "Deploy command" (`npx wrangler deploy`) — wrong path, OpenNext
+    will fail on this static export. The Pages wizard asks for a "Build output directory".
+  - Framework preset **None** (never Next.js), build `npm run build`, output `out`,
+    env var `NODE_VERSION=20`, no `PAGES_BASE_PATH`.
+  - Bindings are managed in **`wrangler.toml`** (`[ai] binding = "AI"`), not the
+    dashboard — the UI greys them out once the file exists.
+  - Workers AI model ids get deprecated; `functions/api/explain.js` tries the `MODELS`
+    list in order. If the tier 502s, the response body names each model's error.
+- The rules engine ships in the **client bundle** — after an engine change, a stale
+  browser cache looks like a failed deploy. Hard-refresh before debugging.
+
+See **`learnings.md`** for the full set of hard-won lessons behind these rules.
 
 ## Engineering principles
 
