@@ -66,6 +66,7 @@ design removes.
 | `next.config.mjs` | **Config** | Static export (`output: "export"`) so `next build` emits a fully static `./out` hostable anywhere. |
 | `report.mjs` | **Tooling** | Generates the Markdown/HTML test report from the golden suite (`npm run report`). |
 | `docs/engine-rules.md` | **Docs** | Human-readable spec of every rule the engine follows, plus its algorithm coverage vs a practitioner field guide. |
+| `docs/mcp-setup.md` | **Docs** | MCP setup guide: local + remote servers, client config, tool reference, troubleshooting. |
 | `mcp/server.mjs` | **Headless** *(optional)* | Local **MCP server** (stdio) exposing the engine to AI agents: `profile_dataset`, `list_questions`, `get_bearing`. Reads CSVs from local disk — data never leaves the machine. `npm run mcp`; e2e test via `npm run test:mcp`. |
 | `mcp-worker/` | **Headless** *(optional)* | Remote **MCP server** on Cloudflare Workers (agents SDK). Privacy-preserving by design: tools accept only the *computed profile*, never raw rows. Deployed separately (`npx wrangler deploy` from `mcp-worker/`). |
 | `.github/workflows/deploy.yml` | **CI/CD** | Builds the static export and publishes to GitHub Pages on every push to `main`. |
@@ -120,6 +121,9 @@ tools (`list_questions`, `get_bearing`) accept only the *computed profile and ta
 facts*, never raw rows, so no dataset ever reaches the server. Deploy from
 `mcp-worker/` (see DEPLOY.md) and connect MCP clients to `/mcp` (streamable HTTP)
 or `/sse`.
+
+> 📖 **[docs/mcp-setup.md](docs/mcp-setup.md)** — the full setup guide: Claude
+> Desktop/Code config, example prompts, tool reference, and troubleshooting.
 
 ## The optional LLM explainer
 

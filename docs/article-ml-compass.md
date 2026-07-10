@@ -103,6 +103,16 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 Twenty-one datasets, seventy-seven assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
+## Your AI agent can consult it too (MCP)
+
+There's an irony in this article: it argues you shouldn't ask a chatbot which model to use — yet the "person" most likely to be handed your CSV next *is* an AI agent. So the newest piece of ML Compass makes peace between the two. The engine is exposed over the **Model Context Protocol (MCP)** — the open standard that lets agents like Claude call tools — so the agent doesn't guess anymore; **it asks the rules engine.**
+
+The flow mirrors the app. The agent profiles your CSV, relays the few questions the data can't answer (you answer right in the chat), and receives the same bearing — decision, reason, caveat per section — as structured data it then walks you through. The tool response even instructs the agent to quote every decision verbatim; in live testing that guard earned its keep, catching a summarizer that had quietly swapped "ROC-AUC" for "accuracy."
+
+The part I care most about: the **local server keeps the privacy story fully intact**. It runs on your machine, reads the CSV from your own disk, and makes zero network calls — there is no LLM inside it at all. The only model in the loop is the agent you're already talking to; every *decision* comes from the deterministic engine. Unplug the internet and the bearing is byte-for-byte identical. That's the "rules decide, models explain" claim in its purest form — now in a shape your agent can use. (There's also a hosted variant for agents that already hold a dataset's computed profile — it accepts the facts only, never raw rows.)
+
+Setup takes about two minutes — the step-by-step guide is in the repo: **[docs/mcp-setup.md](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**.
+
 ## Who this is for
 
 Analysts, architects, admins, and data teams who are comfortable in AutoML or a notebook but want a structured sanity check before they model. It isn't trying to replace a data scientist — it's trying to make the first modeling conversation more defensible.
@@ -119,6 +129,7 @@ ML Compass is open source and free. The decision engine runs entirely in your br
 
 **Try the prototype: [ml-compass.pages.dev](https://ml-compass.pages.dev)**
 **Read the rules and tests: [GitHub repo](https://github.com/venkatviswa/ml-compass)**
+**Wire it into your AI agent: [MCP setup guide](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**
 
 AutoML made training easier. ML Compass is my attempt to make the step *before* training harder to get wrong.
 
