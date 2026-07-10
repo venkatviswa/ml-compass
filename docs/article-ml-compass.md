@@ -38,11 +38,11 @@ None of these are model-selection problems. They're judgment problems, and they 
 
 Here's the part I didn't expect to care about until I lived it.
 
-The platforms most teams now use have made *training* a model dramatically easier. In Salesforce, **Model Builder** (in Data 360's *AI Models* surface, formerly Einstein Studio) lets an admin build a predictive model with clicks. **Snowflake Cortex** and Snowflake ML train classification or forecasting models from a line of SQL. **Databricks AutoML** generates baseline models and notebooks automatically, and **Genie** answers data questions in plain language.
+The platforms most teams now use have made *training* a model dramatically easier. In Salesforce, **Model Builder** — the point-and-click predictive tool in the Agentforce / Data 360 stack (formerly Einstein Studio) — lets an admin build a model without code. **Snowflake Cortex** and Snowflake ML train classification or forecasting models from a line of SQL. **Databricks AutoML** generates baseline models and notebooks automatically, and **Genie** answers data questions in plain language.
 
 This is genuinely great — and ML Compass isn't a competitor to any of it. But notice what got automated and what didn't. These tools help enormously with the *mechanics* of training. What they rarely do is force the uncomfortable framing questions: *will this feature actually exist at prediction time? is accuracy meaningful when one class is rare? should this be split by time?* It's still easy to optimize for accuracy on a 2%-positive target and get a beautiful, misleading number. Those decisions are still on you, and they're where projects quietly fail.
 
-Put crisply: **Model Builder trains models. Cortex trains models from SQL. Databricks AutoML automates the experimentation. ML Compass decides what should be trained — and how it should be judged — before any of them run.**
+Put crisply: **Salesforce's Agentforce Model Builder trains models with clicks. Snowflake Cortex trains them from SQL, inside the warehouse. Databricks AutoML automates the experimentation. ML Compass decides what should be trained — and how it should be judged — before any of them run.**
 
 So if you're a Salesforce architect who can stand up a Model Builder prediction in your sleep but isn't steeped in *why* accuracy is the wrong success metric for a rare event — that gap is exactly the risk. ML Compass is meant to be the **pre-flight checklist you run before you press their Train button**: a reasoned second opinion, not another model.
 
@@ -66,7 +66,7 @@ Three things make it different.
 
 ## What it isn't (and what it can't do)
 
-It's an advisor, not an AutoML tool. It doesn't train a model or touch your warehouse — it produces the *plan and the reasoning* you take *into* Model Builder (Data 360), Cortex, Databricks, or a notebook.
+It's an advisor, not an AutoML tool. It doesn't train a model or touch your warehouse — it produces the *plan and the reasoning* you take *into* Salesforce's Model Builder, Snowflake Cortex, Databricks AutoML, or a notebook.
 
 And to be honest about the limits: ML Compass advises, it doesn't guarantee. It won't tell you whether your problem is worth solving, replace domain or clinical review, or certify a model as fair or correct. It gets you to a defensible starting point faster and flags the common traps. The judgment stays yours.
 
@@ -83,7 +83,7 @@ Four steps, about two minutes:
 
 ## What it looks like on a real dataset
 
-A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
+A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Salesforce's Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
 
 The whole exchange is about five taps. Its questions, verbatim, and the answers a churn project gives:
 
@@ -101,7 +101,7 @@ Here's the bearing ML Compass returns from those answers:
 **Your next step.** The plan drops straight into whatever you build with:
 
 1. **Drop the leaks** — remove `customer_id` and the three after-the-fact columns first.
-2. **Set the right metric** — PR-AUC or recall-at-precision, not accuracy (the "goal" you pick in Model Builder; the scoring function in a notebook).
+2. **Set the right metric** — PR-AUC or recall-at-precision, not accuracy (the "goal" you pick in Salesforce's Model Builder; the scoring function in a notebook).
 3. **Split by time** — train on earlier customers, validate on later ones. No random shuffle.
 4. **Start simple** — logistic baseline, then gradient boosting, and keep the complex model only if it clears the baseline by a real margin.
 5. **Calibrate before you rank** — so the retention team can trust a "70% risk."
@@ -164,7 +164,7 @@ Analysts, architects, admins, and data teams who are comfortable in AutoML or a 
 
 - **Architects working alongside ML engineers.** An architect rarely owns the model, but is on the hook for whether the project is framed right. ML Compass gives both sides a shared, written artifact — task, metric, validation, leakage — to align on *before* any code is written. The architect can interrogate the dataset and challenge the setup without having to be the ML specialist in the room, and the engineer starts from a defensible brief instead of a vague ask.
 - **Catching errors early — and making the client aware.** The cheapest place to find a leaked column or the wrong success metric is the whiteboard, not week three of model iteration. A bearing you can hand to a client turns "trust us" into "here's what we checked, here's the risk we found, and here's the caveat" — which is also how you set honest expectations before anyone has seen a number.
-- **Platforms where you push data straight to a model builder.** This is the sharpest use case. When you load a dataset into a point-and-click trainer — Salesforce's Model Builder (Data 360, formerly Einstein Studio), and similar tooling in Snowflake or Databricks — the platform will happily train on whatever you give it. And even where automated training exists, it rarely forces the *pre-modeling* questions: is this column actually available at prediction time, is accuracy the right metric on a 5%-positive class, is a random split honest for time-ordered data? ML Compass is the checklist that runs in exactly that gap — before the platform turns your setup, mistakes and all, into a deployed model.
+- **Platforms where you push data straight to a model builder.** This is the sharpest use case. When you load a dataset into a point-and-click trainer — Salesforce's Model Builder (Agentforce / Data 360, formerly Einstein Studio), and similar tooling in Snowflake or Databricks — the platform will happily train on whatever you give it. And even where automated training exists, it rarely forces the *pre-modeling* questions: is this column actually available at prediction time, is accuracy the right metric on a 5%-positive class, is a random split honest for time-ordered data? ML Compass is the checklist that runs in exactly that gap — before the platform turns your setup, mistakes and all, into a deployed model.
 
 ## Try it
 
