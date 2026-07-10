@@ -10,7 +10,9 @@
 // onStatus(...) lets the UI show a small, honest note (e.g. on-device download progress).
 
 const DEFAULT_ENDPOINT = "/api/explain";
-const DEFAULT_TIMEOUT_MS = 8000;
+// A full bearing is ~8-9 sections; the server model needs well over 8s to reword them
+// all, so a short timeout here silently kicks users to the on-device tier.
+const DEFAULT_TIMEOUT_MS = 30000;
 // On-device model for the browser tier. Gemma-2-2B follows simple formatting well and
 // is a good size/quality/speed balance (~1.6 GB). Swap the id here to try others.
 // Alternatives: "Llama-3.2-3B-Instruct-q4f16_1-MLC", "Phi-3.5-mini-instruct-q4f16_1-MLC",

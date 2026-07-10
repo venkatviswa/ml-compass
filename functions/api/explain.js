@@ -1,31 +1,33 @@
 // functions/api/explain.js — Cloudflare Pages Function (runs on the free Workers tier).
 //
-// Setup (one time, no API key needed):
-//   Cloudflare Dashboard → your Pages project → Settings → Functions → Bindings
-//   → add an "AI" binding (Workers AI). That injects `env.AI` below.
+// Setup (one time, no API key needed): the AI binding is declared in wrangler.toml
+// ([ai] binding = "AI"), which injects `env.AI` below on every deploy.
 //
 // Free tier: 10,000 neurons/day shared across the account (resets daily). Plenty for a
 // teaching tool, and it hard-stops rather than billing you. On any error this returns a
 // non-200 so the client (explainer.mjs) falls back to the deterministic text.
+//
+// Policy note: the client (explainer.mjs) only ever applies reworded *rationales* —
+// decisions and caveats always render verbatim from the rules engine. So this function
+// asks the model to reword only the rationale, one plain line per section. Plain lines
+// parse reliably on any model; strict JSON was the thing small models kept fumbling.
 
-// This task is rewording, not reasoning, so any current instruct model is enough.
-// Cloudflare deprecates model ids over time (llama-3.1-8b-instruct died 2026-05-30),
-// so we try these in order and use the first that runs. Check the live catalog at
-// developers.cloudflare.com/workers-ai/models when updating this list.
+// Rewording needs any current instruct model. Cloudflare deprecates model ids over time
+// (llama-3.1-8b-instruct died 2026-05-30), so we try these in order and use the first
+// that runs. Mistral-small is first because it is verified working on this account;
+// update against developers.cloudflare.com/workers-ai/models when ids age out.
 const MODELS = [
-  "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-  "@cf/meta/llama-4-scout-17b-16e-instruct",
   "@cf/mistralai/mistral-small-3.1-24b-instruct",
+  "@cf/meta/llama-4-scout-17b-16e-instruct",
+  "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
 ];
 
 const SYSTEM = [
-  "You rephrase machine-generated ML recommendations into clear, warm, plain English.",
-  "STRICT RULES:",
-  "- Never change, add, or remove any decision, number, model name, metric, or column name.",
-  "- Only reword for clarity and tone. Keep each field concise (1–2 sentences).",
-  "- Return ONLY a JSON array. No prose, no markdown fences.",
-  '- Each element: {"id": <unchanged id>, "decision": <reworded>, "reason": <reworded>, "caveat": <reworded or "">}.',
-  "- Include every id from the input, unchanged.",
+  "You rewrite the rationale of machine-generated ML recommendations in clear, warm, plain English.",
+  "Keep every model name, metric, number, and column name exactly as written. Never change the meaning.",
+  "Input: one section per line, formatted 'id :: decision :: rationale'.",
+  "Output: one line per section, formatted exactly 'id :: rewritten rationale' (1-2 short sentences).",
+  "No other text, no blank lines, no JSON, no markdown.",
 ].join("\n");
 
 export async function onRequestPost({ request, env }) {
@@ -35,28 +37,33 @@ export async function onRequestPost({ request, env }) {
     const sections = body && body.sections;
     if (!Array.isArray(sections) || !sections.length) return json({ error: "bad input" }, 400);
 
-    let lastErr = "no model succeeded";
+    const input = sections
+      .map((s) => `${s.id} :: ${s.decision} :: ${s.reason}`)
+      .join("\n");
+
+    const errors = [];
     for (const model of MODELS) {
       let out;
       try {
         out = await env.AI.run(model, {
           messages: [
             { role: "system", content: SYSTEM },
-            { role: "user", content: "Rephrase these sections:\n" + JSON.stringify(sections) },
+            { role: "user", content: input },
           ],
-          max_tokens: 2048,   // headroom so the JSON array isn't truncated for larger bearings
-          temperature: 0.3,
+          max_tokens: 1024,
+          temperature: 0.2,
         });
       } catch (e) {
-        lastErr = `${model}: ${String(e && e.message ? e.message : e)}`;
+        errors.push(`${model}: ${String(e && e.message ? e.message : e)}`);
         continue;   // deprecated/unknown model → try the next one
       }
       const text = (out && (out.response ?? out.result ?? "")) || "";
-      const parsed = extractJsonArray(text);
-      if (parsed) return json(parsed, 200);
-      lastErr = `${model}: unparseable model output`;
+      const parsed = parseLines(text, sections);
+      if (parsed.length) return json(parsed, 200);
+      errors.push(`${model}: no parseable lines in output`);
     }
-    return json({ error: lastErr }, 502);   // → client falls back to on-device / rules
+    // errors for EVERY model, so one curl shows the whole picture → client falls back
+    return json({ error: errors.join(" | ") || "no model succeeded" }, 502);
   } catch (e) {
     return json({ error: String(e && e.message ? e.message : e) }, 502);
   }
@@ -65,14 +72,15 @@ export async function onRequestPost({ request, env }) {
 function json(obj, status) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 }
-function extractJsonArray(text) {
-  const a = text.indexOf("[");
-  if (a === -1) return null;
-  const parse = (s) => { try { const v = JSON.parse(s); return Array.isArray(v) ? v : null; } catch { return null; } };
-  const b = text.lastIndexOf("]");
-  if (b > a) { const v = parse(text.slice(a, b + 1)); if (v) return v; }
-  // salvage a truncated reply: close the array after the last complete object
-  const lastObj = text.lastIndexOf("}");
-  if (lastObj > a) { const v = parse(text.slice(a, lastObj + 1) + "]"); if (v) return v; }
-  return null;
+
+// Parse 'id :: rationale' lines (tolerating a single ':' and stray whitespace), keeping
+// only ids that exist in the request — anything else the model emitted is ignored.
+function parseLines(text, sections) {
+  const valid = new Set(sections.map((s) => s.id));
+  const out = [];
+  for (const line of String(text).split("\n")) {
+    const m = line.match(/^\s*([A-Za-z0-9_-]+)\s*(?:::|:)\s*(.+?)\s*$/);
+    if (m && valid.has(m[1]) && m[2]) out.push({ id: m[1], reason: m[2] });
+  }
+  return out;
 }

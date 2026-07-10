@@ -144,13 +144,13 @@ export default function MLCompass() {
   useEffect(() => {
     if (stage !== 3 || !rec || !useLLM) { setExplained(null); setExplainState("idle"); setLoadMsg(""); return; }
     let cancelled = false;
-    setExplainState("loading"); setLoadMsg("Checking Workers AI…");
+    setExplainState("loading"); setLoadMsg("Rephrasing with Workers AI… (a few seconds; rules text shows until done)");
     explainSections(rec.sections, {
       enableBrowserFallback: allowLLM,   // on-device download only after explicit opt-in
       shouldStop: () => cancelled,       // abort a stale on-device run if the toggle changes
       onStatus: (s) => {
         if (cancelled) return;
-        if (s.tier === "workers-ai") { setLoadMsg("Checking Workers AI…"); return; }
+        if (s.tier === "workers-ai") { setLoadMsg("Rephrasing with Workers AI… (a few seconds; rules text shows until done)"); return; }
         if (s.tier === "on-device") {
           const name = (s.model || "on-device model")
             .replace(/-q4f.*$/i, "").replace(/-MLC$/i, "").replace(/-/g, " ")
