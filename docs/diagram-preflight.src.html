@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>body{margin:0}</style>
+<svg width="2400" height="1300" viewBox="0 0 1200 650" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="1200" height="650" fill="#fbfaf7"/>
+
+  <text x="600" y="52" text-anchor="middle" font-size="30" font-weight="bold" fill="#15202b">The pre-flight check before you press Train</text>
+  <text x="600" y="82" text-anchor="middle" font-size="16" fill="#445566">ML Compass advises — the training happens wherever you already work</text>
+
+  <!-- dataset -->
+  <rect x="40" y="200" width="180" height="120" rx="14" fill="#ffffff" stroke="#e3e1da" stroke-width="2"/>
+  <text x="130" y="248" text-anchor="middle" font-size="17" font-weight="bold" fill="#15202b">A dataset lands</text>
+  <text x="130" y="272" text-anchor="middle" font-size="13" fill="#445566">client CSV · export ·</text>
+  <text x="130" y="290" text-anchor="middle" font-size="13" fill="#445566">warehouse extract</text>
+
+  <line x1="220" y1="260" x2="290" y2="260" stroke="#15202b" stroke-width="3" marker-end="url(#k)"/>
+
+  <!-- ml compass gate -->
+  <rect x="290" y="130" width="360" height="330" rx="16" fill="#e9f1ff" stroke="#1f6feb" stroke-width="3"/>
+  <text x="470" y="168" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f6feb">ML Compass — the bearing</text>
+  <text x="470" y="190" text-anchor="middle" font-size="13" fill="#445566">deterministic · regression-tested · 2 minutes</text>
+  <g font-size="13.5" fill="#15202b">
+    <rect x="315" y="205" width="310" height="26" rx="7" fill="#ffffff" stroke="#e3e1da"/><text x="470" y="223" text-anchor="middle">task framing · baselines · model families</text>
+    <rect x="315" y="238" width="310" height="26" rx="7" fill="#ffffff" stroke="#e3e1da"/><text x="470" y="256" text-anchor="middle">the right metric · validation strategy</text>
+    <rect x="315" y="271" width="310" height="26" rx="7" fill="#ffffff" stroke="#e3e1da"/><text x="470" y="289" text-anchor="middle">leakage audit · calibration · subgroups</text>
+  </g>
+  <text x="470" y="326" text-anchor="middle" font-size="13" font-weight="bold" fill="#b23b3b">caught here, not in week three:</text>
+  <g font-size="12.5" fill="#b23b3b">
+    <rect x="315" y="338" width="150" height="24" rx="12" fill="#fbe6e6"/><text x="390" y="354" text-anchor="middle">leaked columns</text>
+    <rect x="473" y="338" width="152" height="24" rx="12" fill="#fbe6e6"/><text x="549" y="354" text-anchor="middle">accuracy on rare events</text>
+    <rect x="315" y="368" width="150" height="24" rx="12" fill="#fbe6e6"/><text x="390" y="384" text-anchor="middle">shuffled time splits</text>
+    <rect x="473" y="368" width="152" height="24" rx="12" fill="#fbe6e6"/><text x="549" y="384" text-anchor="middle">wrong task framing</text>
+  </g>
+  <text x="470" y="430" text-anchor="middle" font-size="12.5" fill="#445566">use it from the web app — or your AI agent, over MCP</text>
+  <text x="470" y="448" text-anchor="middle" font-size="12.5" fill="#445566">data stays in your browser / on your machine</text>
+
+  <!-- arrow with bearing label -->
+  <line x1="650" y1="260" x2="740" y2="260" stroke="#1d7a3a" stroke-width="3" marker-end="url(#g)"/>
+
+  <!-- destinations -->
+  <g>
+    <rect x="740" y="120" width="420" height="74" rx="12" fill="#ffffff" stroke="#e3e1da" stroke-width="2"/>
+    <text x="950" y="150" text-anchor="middle" font-size="16" font-weight="bold" fill="#15202b">Salesforce Model Builder</text>
+    <text x="950" y="172" text-anchor="middle" font-size="12.5" fill="#445566">Agentforce / Data 360 — pick the goal &amp; fields the bearing chose</text>
+
+    <rect x="740" y="206" width="420" height="74" rx="12" fill="#ffffff" stroke="#e3e1da" stroke-width="2"/>
+    <text x="950" y="236" text-anchor="middle" font-size="16" font-weight="bold" fill="#15202b">Snowflake Cortex / Snowflake ML</text>
+    <text x="950" y="258" text-anchor="middle" font-size="12.5" fill="#445566">train from SQL — with an honest split and metric</text>
+
+    <rect x="740" y="292" width="420" height="74" rx="12" fill="#ffffff" stroke="#e3e1da" stroke-width="2"/>
+    <text x="950" y="322" text-anchor="middle" font-size="16" font-weight="bold" fill="#15202b">Databricks AutoML</text>
+    <text x="950" y="344" text-anchor="middle" font-size="12.5" fill="#445566">baselines &amp; notebooks — minus the leaked features</text>
+
+    <rect x="740" y="378" width="420" height="74" rx="12" fill="#ffffff" stroke="#e3e1da" stroke-width="2"/>
+    <text x="950" y="408" text-anchor="middle" font-size="16" font-weight="bold" fill="#15202b">Your notebook</text>
+    <text x="950" y="430" text-anchor="middle" font-size="12.5" fill="#445566">scikit-learn / boosting — baseline ladder first</text>
+  </g>
+
+  <!-- bottom note -->
+  <rect x="40" y="520" width="1120" height="90" rx="14" fill="#fdf0db" stroke="#c77400" stroke-width="2"/>
+  <text x="600" y="558" text-anchor="middle" font-size="15.5" font-weight="bold" fill="#15202b">The platforms made training a button. The thinking before the button is still on you —</text>
+  <text x="600" y="584" text-anchor="middle" font-size="15.5" fill="#15202b">ML Compass turns that thinking into a written, testable plan you can hand to the tool, the team, and the client.</text>
+
+  <defs>
+    <marker id="k" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#15202b"/></marker>
+    <marker id="g" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1d7a3a"/></marker>
+  </defs>
+</svg>

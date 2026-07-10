@@ -6,6 +6,8 @@ Desktop, Claude Code, or any MCP client) can consult it instead of guessing whic
 model to use. The agent handles the conversation; **every decision comes from the
 same rules engine the web app ships** — there is no LLM inside either server.
 
+![ML Compass over MCP: the agent chats with you, calls the local server's tools, and the deterministic rules engine produces the bearing — all on your machine.](diagram-mcp.png)
+
 Two modes:
 
 | | **Local (stdio)** — `mcp/server.mjs` | **Remote (Cloudflare Worker)** — `mcp-worker/` |

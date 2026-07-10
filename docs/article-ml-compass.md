@@ -41,6 +41,9 @@ This is genuinely great — and ML Compass isn't a competitor to any of it. But 
 
 So if you're a Salesforce architect who can stand up a Model Builder prediction in your sleep but isn't steeped in *why* accuracy is the wrong success metric for a rare event — that gap is exactly the risk. ML Compass is meant to be the **pre-flight checklist you run before you press their Train button**: a reasoned second opinion, not another model.
 
+![Where ML Compass fits: a dataset lands, the bearing catches leaked columns, wrong metrics, dishonest splits and bad framing — then the plan travels into Salesforce Model Builder, Snowflake, Databricks, or your notebook.](diagram-preflight.png)
+*The pre-flight check: the mistakes get caught before training, and the plan travels with you into whatever trains the model.*
+
 ## What I built: ML Compass
 
 ML Compass takes a dataset and a one-line business goal and returns a *bearing* — a structured plan covering the task, baselines, model families, the right evaluation metric, a feature-engineering plan, a validation strategy, and a leakage audit. Every recommendation comes with a **decision, a reason, and a caveat**. A compass, not autopilot.
@@ -106,6 +109,9 @@ Twenty-one datasets, seventy-seven assertions, zero failures — and when I add 
 ## Your AI agent can consult it too (MCP)
 
 There's an irony in this article: it argues you shouldn't ask a chatbot which model to use — yet the "person" most likely to be handed your CSV next *is* an AI agent. So the newest piece of ML Compass makes peace between the two. The engine is exposed over the **Model Context Protocol (MCP)** — the open standard that lets agents like Claude call tools — so the agent doesn't guess anymore; **it asks the rules engine.**
+
+![ML Compass over MCP: you chat with the agent; the local MCP server and the deterministic rules engine run on your machine; raw data never leaves it.](diagram-mcp.png)
+*The agent narrates; the rules decide. The local server makes zero network calls — your CSV never leaves your machine.*
 
 The flow mirrors the app. The agent profiles your CSV, relays the few questions the data can't answer (you answer right in the chat), and receives the same bearing — decision, reason, caveat per section — as structured data it then walks you through. Here's what the agent actually receives — real output from the Kaggle Titanic set, abridged:
 
