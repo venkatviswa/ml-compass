@@ -163,7 +163,8 @@ export function recommend(facts) {
     answers.timeDependent ? "amber" : "sup");
 
   const suspects = prof.cols.filter((c) => LEAKY_RE.test(c.name) && c.name !== target && !excludedCols.includes(c.name)).map((c) => c.name);
-  const idCols = prof.cols.filter((c) => c.idLike).map((c) => c.name);
+  // Already-excluded columns aren't re-flagged as ID-like — one clear reason per column.
+  const idCols = prof.cols.filter((c) => c.idLike && !excludedCols.includes(c.name)).map((c) => c.name);
   const warn = [];
   if (excludedCols.length) warn.push(`Excluded as unknown at prediction time: ${excludedCols.join(", ")}.`);
   if (suspects.length) warn.push(`Suspicious by name, still included: ${suspects.join(", ")} — confirm they exist at prediction time.`);
@@ -209,8 +210,13 @@ export function questionKeys(prof, task, noTarget = false) {
   return q;
 }
 
-// Apply the user's framing answer to an ambiguous numeric target.
+// Apply the user's framing answer to an ambiguous numeric target. targetType is updated
+// to match so headless consumers don't see kind:"classification" with targetType:"ordinal".
 export function resolveTask(rawTask, answers = {}) {
-  if (!rawTask) return rawTask;
-  return rawTask.framingAmbiguous && answers.framing ? { ...rawTask, kind: answers.framing } : rawTask;
+  if (!rawTask || !rawTask.framingAmbiguous || !answers.framing) return rawTask;
+  const kind = answers.framing;
+  const targetType =
+    kind === "classification" ? (rawTask.nClasses === 2 ? "binary" : "multiclass")
+    : kind === "ordinal" ? "ordinal" : rawTask.targetType;
+  return { ...rawTask, kind, targetType };
 }

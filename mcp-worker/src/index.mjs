@@ -75,9 +75,17 @@ export class MLCompassMCP extends McpAgent {
         const noTarget = !task;
         const resolved = noTarget ? null : resolveTask(task, answers);
         const keys = questionKeys(prof, resolved, noTarget);
-        return asJson({
+        const out = {
           questions: keys.map((k) => ({ key: k, ...QUESTION_INFO[k], answered: answers[k] !== undefined })),
-        });
+        };
+        // The question set depends on framing: warn the agent so answers aren't silently skipped.
+        if (resolved?.framingAmbiguous && answers.framing === undefined) {
+          const extra = questionKeys(prof, { ...resolved, kind: "classification" }, false).filter((k) => !keys.includes(k));
+          if (extra.length) out.note =
+            `If framing is answered "classification", these questions ALSO apply: ${extra.join(", ")}. ` +
+            "Re-call list_questions with your answers to get the final set before get_bearing.";
+        }
+        return asJson(out);
       }
     );
 
@@ -109,10 +117,16 @@ export class MLCompassMCP extends McpAgent {
           modality: noTarget ? "tabular" : (answers.modality || "tabular"),
           task: resolved, prof, answers, target: target || "", excludedCols,
         });
-        return asJson({
+        const out = {
           note: "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model.",
           sections: rec.sections,
-        });
+        };
+        const unanswered = questionKeys(prof, resolved, noTarget).filter((k) => answers[k] === undefined);
+        if (unanswered.length) out.unansweredQuestions = {
+          keys: unanswered,
+          note: "These questions were relevant but unanswered — the bearing assumes defaults. Answer them (see list_questions) for a sharper bearing.",
+        };
+        return asJson(out);
       }
     );
   }

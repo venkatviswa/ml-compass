@@ -55,4 +55,17 @@ console.log("6 unsupervised:", JSON.parse(u.result.content[0].text).sections[0].
 const err = await call("tools/call", { name: "get_bearing", arguments: { csv, target: "nope" } });
 console.log("7 bad target -> isError:", err.result.isError === true);
 
+// framing-dependent questions: ambiguous target with no framing answer must WARN that
+// classification adds needsProbs/errorCost (the gap a live agent run exposed)
+const q2 = await call("tools/call", { name: "list_questions", arguments: { csv, target: "fare_amount" } });
+const q2d = JSON.parse(q2.result.content[0].text);
+console.log("8 framing note present:", /needsProbs/.test(q2d.note || ""));
+
+// and a bearing with framing answered but needsProbs/errorCost skipped must surface them
+const b2 = await call("tools/call", { name: "get_bearing", arguments: { csv, target: "fare_amount",
+  answers: { framing: "classification", timeDependent: false, interpretability: "nice", regulated: false } } });
+const b2d = JSON.parse(b2.result.content[0].text);
+console.log("9 unanswered surfaced:", JSON.stringify(b2d.unansweredQuestions?.keys));
+console.log("10 resolved targetType:", b2d.task.targetType);
+
 child.kill();
