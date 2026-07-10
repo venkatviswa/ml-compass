@@ -10,3 +10,8 @@
 name = "ml-compass"
 pages_build_output_dir = "out"
 compatibility_date = "2024-11-01"
+
+# Workers AI binding for functions/api/explain.js (reads env.AI). With a wrangler.toml
+# present, bindings are managed HERE, not in the dashboard (the UI greys them out).
+[ai]
+binding = "AI"
