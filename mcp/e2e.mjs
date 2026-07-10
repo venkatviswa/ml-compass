@@ -68,4 +68,8 @@ const b2d = JSON.parse(b2.result.content[0].text);
 console.log("9 unanswered surfaced:", JSON.stringify(b2d.unansweredQuestions?.keys));
 console.log("10 resolved targetType:", b2d.task.targetType);
 
+// small-n PCA reason must match the small-n model advice (not claim "tree ensembles")
+const pca = b2d.sections.find((s) => s.id === "pca");
+console.log("11 small-n PCA reason:", /simple and well-regularized/.test(pca.reason));
+
 child.kill();

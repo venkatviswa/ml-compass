@@ -137,7 +137,7 @@ server.registerTool(
         task, prof, answers, target: target || "", excludedCols,
       });
       const out = {
-        note: "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model.",
+        note: "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model. When summarizing for the user, quote each section's decision verbatim (do not substitute metrics or model names); only the reasons may be paraphrased.",
         task, sections: rec.sections,
       };
       // Surface any relevant-but-unanswered questions so defaults aren't assumed silently

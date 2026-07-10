@@ -139,7 +139,9 @@ export function recommend(facts) {
     kind === "ordinal" ? "Also report accuracy-within-1 and consider ordinal-aware models (e.g. ordered logistic)." : null);
 
   add("pca", "PCA decision", "Skip initially",
-    "Recommended families are tree ensembles — they handle correlated features natively and PCA destroys feature importances.",
+    smallN
+      ? "The suggested models are simple and well-regularized (at most a single Random Forest) — none need PCA, and it destroys feature importances."
+      : "Recommended families are tree ensembles — they handle correlated features natively and PCA destroys feature importances.",
     "Keep PCA as a side experiment (wide one-hot block, 2-component scatter). Revisit if you switch to kNN/SVM/linear/clustering.", "neu");
 
   const dt = usableCols.filter((c) => c.dtype === "datetime").map((c) => c.name);

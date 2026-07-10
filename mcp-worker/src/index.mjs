@@ -118,7 +118,7 @@ export class MLCompassMCP extends McpAgent {
           task: resolved, prof, answers, target: target || "", excludedCols,
         });
         const out = {
-          note: "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model.",
+          note: "Every decision below came from deterministic rules over the dataset profile and the answers — not from a language model. When summarizing for the user, quote each section's decision verbatim (do not substitute metrics or model names); only the reasons may be paraphrased.",
           sections: rec.sections,
         };
         const unanswered = questionKeys(prof, resolved, noTarget).filter((k) => answers[k] === undefined);
