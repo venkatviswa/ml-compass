@@ -1,5 +1,11 @@
 # ML Compass
 
+[![Deploy to GitHub Pages](https://github.com/venkatviswa/ml-compass/actions/workflows/deploy.yml/badge.svg)](https://github.com/venkatviswa/ml-compass/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1d7a3a.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/live%20demo-ml--compass.pages.dev-1f6feb)](https://ml-compass.pages.dev)
+[![Golden suite](https://img.shields.io/badge/golden%20suite-passing-1d7a3a)](docs/test-report.md)
+[![MCP](https://img.shields.io/badge/MCP-local%20%2B%20remote-7b3fe4)](docs/mcp-setup.md)
+
 **An ML project advisor, not an AutoML tool.** ML Compass takes a dataset and a
 business question and returns a *bearing*: the learning task, sensible baselines,
 which model families to try, whether to use PCA, a feature‑engineering plan,
@@ -16,6 +22,8 @@ The flow is simple: frame the business decision, profile the dataset, answer a
 few context questions, then receive a deterministic *bearing* with reasons and
 caveats.
 
+![The bearing for a churn dataset: task, baselines, metric, PCA, feature engineering, validation, leakage flags and calibration — each with a reason and a caveat.](docs/screenshot-bearing.png)
+
 ## Core principle: rules decide, explanations follow
 
 The recommendation is produced by a **deterministic rules engine** over your
@@ -29,6 +37,8 @@ rules text. It can never change a decision.
 This is the deliberate counter‑position to "ask a chatbot which model to use":
 the model that gives you confident wrong advice is exactly the failure mode this
 design removes.
+
+![Architecture: the dataset and your answers feed a deterministic rules engine that produces the bearing; an optional language model only rephrases the rationale.](docs/diagram-architecture.png)
 
 > 📋 **[docs/engine-rules.md](docs/engine-rules.md)** — the full human-readable spec
 > of every rule the engine follows (conditions, thresholds, and how its choices map

@@ -29,6 +29,9 @@ The mistakes that actually cost you are quieter:
 
 None of these are model-selection problems. They're judgment problems, and they happen before you ever fit anything.
 
+![Two ways to start an ML project: pick a model and train — and meet leakage, the wrong metric and a dishonest split in production; or run the pre-flight check and train with a plan.](diagram-two-paths.png)
+*The whole argument in one picture: everything on the left is preventable on the right.*
+
 *(New to some of these terms? There's a plain-English glossary at the very end. You won't need it to follow along.)*
 
 ## The button got easier. The thinking didn't.
@@ -38,6 +41,8 @@ Here's the part I didn't expect to care about until I lived it.
 The platforms most teams now use have made *training* a model dramatically easier. In Salesforce, **Model Builder** (in Data 360's *AI Models* surface, formerly Einstein Studio) lets an admin build a predictive model with clicks. **Snowflake Cortex** and Snowflake ML train classification or forecasting models from a line of SQL. **Databricks AutoML** generates baseline models and notebooks automatically, and **Genie** answers data questions in plain language.
 
 This is genuinely great — and ML Compass isn't a competitor to any of it. But notice what got automated and what didn't. These tools help enormously with the *mechanics* of training. What they rarely do is force the uncomfortable framing questions: *will this feature actually exist at prediction time? is accuracy meaningful when one class is rare? should this be split by time?* It's still easy to optimize for accuracy on a 2%-positive target and get a beautiful, misleading number. Those decisions are still on you, and they're where projects quietly fail.
+
+Put crisply: **Model Builder trains models. Cortex trains models from SQL. Databricks AutoML automates the experimentation. ML Compass decides what should be trained — and how it should be judged — before any of them run.**
 
 So if you're a Salesforce architect who can stand up a Model Builder prediction in your sleep but isn't steeped in *why* accuracy is the wrong success metric for a rare event — that gap is exactly the risk. ML Compass is meant to be the **pre-flight checklist you run before you press their Train button**: a reasoned second opinion, not another model.
 
@@ -80,7 +85,14 @@ Four steps, about two minutes:
 
 A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
 
-Here's the bearing ML Compass returns instead — same dataset, the three after-the-fact columns set aside as "won't know at prediction time":
+The whole exchange is about five taps. Its questions, verbatim, and the answers a churn project gives:
+
+> **Which columns would you actually know at prediction time?** → not `cancellation_reason`, `final_invoice`, `contract_end_date` — those only exist after the churn
+> **Is the data time-ordered / do patterns drift over time?** → yes
+> **Will the outputs be used as probabilities or scores (ranking, triage)?** → yes — retention works a ranked list
+> **Which error costs more — a false negative, a false positive, or equal?** → a missed churner
+
+Here's the bearing ML Compass returns from those answers:
 
 ![The ML Compass bearing for the churn dataset: task, baselines, metric, PCA, feature engineering, validation, leakage flags, and calibration — each with a reason.](screenshot-bearing.png)
 
@@ -163,6 +175,8 @@ ML Compass is open source and free. The decision engine runs entirely in your br
 **Wire it into your AI agent: [MCP setup guide](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**
 
 AutoML made training easier. ML Compass is my attempt to make the step *before* training harder to get wrong.
+
+If it saves you one leaked column or one week of tuning the wrong problem, it has done its job. And if you disagree with a call it makes — that's the conversation I'm most interested in. Every rule is a line of code with a test on it, not a vibe: open an issue and tell me where it's wrong.
 
 ---
 
