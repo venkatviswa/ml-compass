@@ -99,3 +99,29 @@ body:JSON.stringify({sections:[{id:'t',title:'T',decision:'D',reason:'R',caveat:
 | On-device explainer | `@mlc-ai/web-llm` + a WebGPU browser | free (one-time ~1–2 GB model download) |
 
 The app degrades gracefully down this list, automatically, with no user action.
+
+---
+
+## Optional — the remote MCP server (Cloudflare Worker)
+
+`mcp-worker/` exposes the engine to AI agents over the Model Context Protocol
+(tools accept the *computed profile* only — no raw data ever reaches the server).
+It is a **Worker**, not part of the Pages site, and deploys separately:
+
+```bash
+cd mcp-worker
+npm install
+npx wrangler deploy      # first run opens a browser login
+```
+
+You'll get `https://ml-compass-mcp.<account>.workers.dev` — point MCP clients at
+`/mcp` (streamable HTTP) or `/sse` (legacy SSE).
+
+> Note the symmetry trap: for the **site**, the Workers wizard / `npx wrangler deploy`
+> was the WRONG path (static export → Pages). For the **MCP worker**, it's the right
+> one. If you prefer dashboard CI over the CLI: Workers & Pages → Create → **Workers**
+> → connect the repo, set **root directory** `mcp-worker`, deploy command
+> `npx wrangler deploy`.
+
+Local alternative (no deploy, fully private): `npm run mcp` at the repo root runs the
+stdio MCP server for Claude Desktop / Claude Code — see the README's MCP section.

@@ -12,7 +12,7 @@ import {
 // ---- business logic (single source of truth, shared with the test harness) ----
 import { explainSections, canRunBrowserLLM } from "./explainer.mjs";
 import { profile, targetFacts, makeSample } from "./profiler.mjs";
-import { recommend, sectionText, LEAKY_RE } from "./rules.mjs";
+import { recommend, sectionText, LEAKY_RE, questionKeys, resolveTask } from "./rules.mjs";
 
 /* ---------------- design tokens (shared identity with the ML guide) ---------------- */
 const C = {
@@ -99,10 +99,7 @@ export default function MLCompass() {
 
   const prof = useMemo(() => (rows ? profile(rows) : null), [rows]);
   const rawTask = useMemo(() => (rows && target && !noTarget ? targetFacts(rows, prof, target) : null), [rows, prof, target, noTarget]);
-  const resolvedTask = useMemo(() => {
-    if (noTarget || !rawTask) return noTarget ? null : rawTask;
-    return rawTask.framingAmbiguous && answers.framing ? { ...rawTask, kind: answers.framing } : rawTask;
-  }, [rawTask, answers.framing, noTarget]);
+  const resolvedTask = useMemo(() => (noTarget ? null : resolveTask(rawTask, answers)), [rawTask, answers, noTarget]);
   const isClf = resolvedTask?.kind === "classification";
   const resolvedModality = noTarget ? "tabular" : (answers.modality || "tabular");
 
@@ -118,17 +115,7 @@ export default function MLCompass() {
     Papa.parse(f, { header: true, skipEmptyLines: true, complete: (res) => { setRows(res.data); setFileName(f.name); initKnown(res.data); } });
   };
 
-  const questionList = useMemo(() => {
-    if (noTarget) return ["unsupGoal"];
-    const q = [];
-    if (prof?.modalityHint && prof.modalityHint !== "tabular") q.push("modality");
-    if (rawTask?.framingAmbiguous) q.push("framing");
-    q.push("timeDependent");
-    if (isClf) q.push("needsProbs");
-    q.push("interpretability", "regulated");
-    if (isClf) q.push("errorCost");
-    return q;
-  }, [noTarget, prof, rawTask, isClf]);
+  const questionList = useMemo(() => questionKeys(prof, resolvedTask, noTarget), [prof, resolvedTask, noTarget]);
   const questionsDone = questionList.every((k) => answers[k] !== null && answers[k] !== undefined);
 
   const rec = useMemo(() => {

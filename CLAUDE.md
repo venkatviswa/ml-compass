@@ -15,6 +15,8 @@ rephrases.** Next.js static export; all decision logic runs client-side.
 | `app/MLCompass.jsx` | UI only | Presentation + state. **Never put decision logic here.** |
 | `app/fixtures.mjs`, `app/rules.test.mjs` | Golden tests | 21 datasets, 77 assertions on decisions. |
 | `functions/api/explain.js` | Serverless | Cloudflare Pages Function (Workers AI, `env.AI` binding). |
+| `mcp/server.mjs` | Headless | Local MCP server (stdio) over the same engine; e2e test `npm run test:mcp`. |
+| `mcp-worker/` | Headless | Remote MCP server (Cloudflare Worker, agents SDK). **Profile-in only — never accept raw rows remotely.** Separate deployable with its own wrangler.jsonc. |
 | `docs/engine-rules.md` | Spec | Human-readable spec of the engine. **Keep in sync with `rules.mjs`.** |
 
 ## Invariants — do not break
@@ -59,6 +61,9 @@ npm run report   # regenerate the test report in docs/
     dashboard — the UI greys them out once the file exists.
   - Workers AI model ids get deprecated; `functions/api/explain.js` tries the `MODELS`
     list in order. If the tier 502s, the response body names each model's error.
+- **MCP worker** (`mcp-worker/`) — a separate Cloudflare **Worker** (not Pages):
+  `cd mcp-worker && npm install && npx wrangler deploy`. For this one the Workers
+  wizard / `npx wrangler deploy` IS the right path (unlike the site).
 - The rules engine ships in the **client bundle** — after an engine change, a stale
   browser cache looks like a failed deploy. Hard-refresh before debugging.
 

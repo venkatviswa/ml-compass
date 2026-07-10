@@ -66,6 +66,8 @@ design removes.
 | `next.config.mjs` | **Config** | Static export (`output: "export"`) so `next build` emits a fully static `./out` hostable anywhere. |
 | `report.mjs` | **Tooling** | Generates the Markdown/HTML test report from the golden suite (`npm run report`). |
 | `docs/engine-rules.md` | **Docs** | Human-readable spec of every rule the engine follows, plus its algorithm coverage vs a practitioner field guide. |
+| `mcp/server.mjs` | **Headless** *(optional)* | Local **MCP server** (stdio) exposing the engine to AI agents: `profile_dataset`, `list_questions`, `get_bearing`. Reads CSVs from local disk — data never leaves the machine. `npm run mcp`; e2e test via `npm run test:mcp`. |
+| `mcp-worker/` | **Headless** *(optional)* | Remote **MCP server** on Cloudflare Workers (agents SDK). Privacy-preserving by design: tools accept only the *computed profile*, never raw rows. Deployed separately (`npx wrangler deploy` from `mcp-worker/`). |
 | `.github/workflows/deploy.yml` | **CI/CD** | Builds the static export and publishes to GitHub Pages on every push to `main`. |
 | `DEPLOY.md` | **Docs** | Push-button deploy guide: Cloudflare Pages (recommended), Vercel, and GitHub Pages, with the Workers AI binding setup. |
 | `ml-decision-guide.pdf` / `.html` | **Reference** | The companion ML decision guide whose lifecycle, matrices, and leakage rules this engine encodes. The HTML is for screen; the PDF (with two landscape flowchart pages) is for printing/teaching. |
@@ -93,8 +95,31 @@ npm run build      # emits a static ./out for hosting (output: "export")
 **The tests (no framework needed):**
 
 ```bash
-node app/rules.test.mjs
+node app/rules.test.mjs   # golden suite (engine decisions)
+npm run test:mcp          # end-to-end test of the local MCP server
 ```
+
+## Headless: use it from AI agents (MCP)
+
+The same deterministic engine is exposed as **Model Context Protocol** servers, so an
+AI agent can consult ML Compass instead of guessing which model to use — the agent
+calls the tools, the rules decide.
+
+**Local (stdio)** — full-fidelity and fully private (CSVs are read from your disk):
+
+```json
+{ "mcpServers": { "ml-compass": {
+    "command": "node", "args": ["/path/to/ml-compass/mcp/server.mjs"] } } }
+```
+
+Tools: `profile_dataset` (CSV → objective facts) → `list_questions` (what the data
+can't reveal — the agent asks its human) → `get_bearing` (the full recommendation).
+
+**Remote (Cloudflare Workers)** — for agents that already hold the facts: the remote
+tools (`list_questions`, `get_bearing`) accept only the *computed profile and task
+facts*, never raw rows, so no dataset ever reaches the server. Deploy from
+`mcp-worker/` (see DEPLOY.md) and connect MCP clients to `/mcp` (streamable HTTP)
+or `/sse`.
 
 ## The optional LLM explainer
 

@@ -5,3 +5,7 @@
 .DS_Store
 .vercel
 .env*
+
+# unanchored: dependencies of nested packages (mcp-worker/)
+node_modules/
+.wrangler/

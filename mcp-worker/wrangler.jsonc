@@ -1,0 +1,16 @@
+// Cloudflare Worker config for the REMOTE MCP server (separate from the Pages site,
+// whose config is the repo-root wrangler.toml). Deploy from this directory:
+//   npm install && npx wrangler deploy
+{
+  "name": "ml-compass-mcp",
+  "main": "src/index.mjs",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // McpAgent keeps per-session state in a Durable Object; the binding name MCP_OBJECT
+  // is the agents-SDK default. new_sqlite_classes works on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MLCompassMCP"] }],
+  "durable_objects": {
+    "bindings": [{ "name": "MCP_OBJECT", "class_name": "MLCompassMCP" }]
+  },
+  "observability": { "enabled": true }
+}

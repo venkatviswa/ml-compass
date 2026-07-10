@@ -179,3 +179,38 @@ export function sectionText(rec, id) {
   const s = rec.sections.find((x) => x.id === id);
   return s ? `${s.decision} || ${s.reason} || ${s.caveat || ""}` : "";
 }
+
+/* ---------------- question selection & framing resolution ----------------
+   Shared by the UI and the MCP servers: which follow-up questions the data can't
+   answer, and how a framing answer resolves an ambiguous numeric target. */
+
+// Plain-language metadata for each question key (presentation-free, for headless use).
+export const QUESTION_INFO = {
+  modality: { question: "The profiler suspects this isn't tabular — confirm the data modality.", options: ["tabular", "text", "image"] },
+  framing: { question: "The numeric target has few distinct values — model it as regression, classification, or ordinal?", options: ["regression", "classification", "ordinal"] },
+  timeDependent: { question: "Is the data time-ordered / do patterns drift over time?", options: [true, false] },
+  needsProbs: { question: "Will the outputs be used as probabilities or scores (ranking, triage)?", options: [true, false] },
+  interpretability: { question: "How important is model interpretability?", options: ["must", "nice", "no"] },
+  regulated: { question: "Is this a regulated or high-stakes setting (decisions affect people)?", options: [true, false] },
+  errorCost: { question: "Which error costs more — a false negative, a false positive, or equal?", options: ["fn", "fp", "eq"] },
+  unsupGoal: { question: "No target column — what is the unsupervised goal?", options: ["cluster", "reduce", "anomaly"] },
+};
+
+// The questions to ask for a given profile + (resolved) task. Order matters in the UI.
+export function questionKeys(prof, task, noTarget = false) {
+  if (noTarget) return ["unsupGoal"];
+  const q = [];
+  if (prof?.modalityHint && prof.modalityHint !== "tabular") q.push("modality");
+  if (task?.framingAmbiguous) q.push("framing");
+  q.push("timeDependent");
+  if (task?.kind === "classification") q.push("needsProbs");
+  q.push("interpretability", "regulated");
+  if (task?.kind === "classification") q.push("errorCost");
+  return q;
+}
+
+// Apply the user's framing answer to an ambiguous numeric target.
+export function resolveTask(rawTask, answers = {}) {
+  if (!rawTask) return rawTask;
+  return rawTask.framingAmbiguous && answers.framing ? { ...rawTask, kind: answers.framing } : rawTask;
+}
