@@ -1,9 +1,29 @@
 // rules.test.mjs — golden tests. Run: node rules.test.mjs
 import { recommend, sectionText } from "./rules.mjs";
+import { profile, makeSample } from "./profiler.mjs";
 import { DATASETS } from "./fixtures.mjs";
 
 let pass = 0, fail = 0; const failed = [];
-console.log("\n=== ML Compass · golden tests vs best practice (20 datasets) ===\n");
+console.log(`\n=== ML Compass · golden tests vs best practice (${DATASETS.length} datasets) ===\n`);
+
+// Profiler unit checks — fixtures pass idLike explicitly, so the heuristic itself
+// is exercised here against the built-in taxi sample (timestamps must not be ID-like).
+{
+  const p = profile(makeSample());
+  const byName = Object.fromEntries(p.cols.map((c) => [c.name, c]));
+  const checks = [
+    ["pickup_datetime detected as datetime", byName.pickup_datetime?.dtype === "datetime"],
+    ["pickup_datetime NOT flagged ID-like", byName.pickup_datetime?.idLike === false],
+    ["trip_id flagged ID-like", byName.trip_id?.idLike === true],
+  ];
+  console.log("• Profiler heuristics — built-in taxi sample");
+  for (const [label, ok] of checks) {
+    ok ? pass++ : (fail++, failed.push(`profiler :: ${label}`));
+    console.log(`   ${ok ? "✓" : "✗"} ${label}`);
+  }
+  console.log("");
+}
+
 for (const d of DATASETS) {
   const rec = recommend(d.facts);
   const lines = d.expect.map(([id, needle]) => {

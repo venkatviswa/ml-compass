@@ -73,7 +73,7 @@ const htmlDoc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
   .foot{margin-top:18px;color:var(--soft);font-size:12.5px;}
 </style></head><body><div class="wrap">
   <h1>ML Compass — Test Report</h1>
-  <p class="sub">Golden tests: engine decisions vs best practice across 20 famous datasets. Assertions check decisions (metric, PCA, leakage, validation), not prose. Every dataset name and Source link opens the original dataset page.</p>
+  <p class="sub">Golden tests: engine decisions vs best practice across 21 famous datasets. Assertions check decisions (metric, PCA, leakage, validation), not prose. Every dataset name and Source link opens the original dataset page.</p>
   <div class="summary">✓ ${passCount}/${rows.length} datasets passed · ${totalAssertions} assertions</div>
   <table>
     <thead><tr><th>S.No</th><th>Dataset</th><th>Source</th><th>Expected</th><th>Actual (engine decisions)</th><th>Comment</th></tr></thead>

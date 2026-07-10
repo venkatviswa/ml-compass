@@ -2,9 +2,9 @@
 
 *The worst ML failures usually aren't bad algorithms. They're leaked columns, the wrong success metric, and dishonest validation — decisions made in the first hour with a dataset, before a single model is trained. I built ML Compass as a deterministic second opinion for that hour.*
 
-> **TL;DR** — The expensive ML mistakes happen *before* you train a model, and the no-code platforms rarely force the questions that catch them. ML Compass profiles your dataset, asks the few things the data can't answer, and returns a reasoned plan — task, metric, validation, and a leakage audit — with a *why* behind every call. Deterministic (rules decide, the LLM only rephrases), private (runs in your browser), open source, and regression-tested against 20 datasets.
+> **TL;DR** — The expensive ML mistakes happen *before* you train a model, and the no-code platforms rarely force the questions that catch them. ML Compass profiles your dataset, asks the few things the data can't answer, and returns a reasoned plan — task, metric, validation, and a leakage audit — with a *why* behind every call. Deterministic (rules decide, the LLM only rephrases), private (runs in your browser), open source, and regression-tested against 21 datasets.
 
-I built a small working prototype here: **[ML Compass](https://venkatviswa.github.io/ml-compass)**. It follows a simple flow — frame the business decision, profile the dataset, answer a few context questions, then receive a deterministic *bearing* with reasons and caveats.
+I built a small working prototype here: **[ML Compass](https://ml-compass.pages.dev)**. It follows a simple flow — frame the business decision, profile the dataset, answer a few context questions, then receive a deterministic *bearing* with reasons and caveats.
 
 ---
 
@@ -97,11 +97,11 @@ In both cases the tool trained nothing. It told you which problem you're really 
 
 ## Determinism you can prove
 
-Because the engine is deterministic, I can do something you can't do with an LLM advisor: **write tests.** I encoded 20 famous datasets — Titanic, Credit Card Fraud, Adult Income, NYC Taxi, MNIST, SMS Spam, and more — as fixtures, each asserting the engine's *decisions* against best practice. Extreme imbalance must yield PR-AUC, not accuracy. A time-dependent target must yield a time-based split. A leaked column must get flagged.
+Because the engine is deterministic, I can do something you can't do with an LLM advisor: **write tests.** I encoded 21 famous datasets — Titanic, Credit Card Fraud, Adult Income, NYC Taxi, MNIST, SMS Spam, and more — as fixtures, each asserting the engine's *decisions* against best practice. Extreme imbalance must yield PR-AUC, not accuracy. A time-dependent target must yield a time-based split. A leaked column must get flagged.
 
 ![Test report: 20 datasets, 71 assertions, 0 failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty datasets, seventy-one assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+Twenty-one datasets, seventy-seven assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Who this is for
 
@@ -117,7 +117,7 @@ Analysts, architects, admins, and data teams who are comfortable in AutoML or a 
 
 ML Compass is open source and free. The decision engine runs entirely in your browser, so your data stays put; the optional plain-English rephrase runs on-device too, or server-side on the hosted demo. Point it at your next dataset *before* you click Train. Try it on Titanic, the credit-card fraud set, a churn export, or your own CSV, and see whether the bearing matches your instinct — or catches something you'd have missed.
 
-**Try the prototype: [venkatviswa.github.io/ml-compass](https://venkatviswa.github.io/ml-compass)**
+**Try the prototype: [ml-compass.pages.dev](https://ml-compass.pages.dev)**
 **Read the rules and tests: [GitHub repo](https://github.com/venkatviswa/ml-compass)**
 
 AutoML made training easier. ML Compass is my attempt to make the step *before* training harder to get wrong.

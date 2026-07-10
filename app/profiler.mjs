@@ -58,7 +58,9 @@ export function profile(rows) {
     if (nonEmpty && dateHits / nonEmpty > 0.85) dtype = "datetime";
     else if (nonEmpty && numeric / nonEmpty > 0.9) dtype = "numeric";
     else if (nonEmpty && totalLen / nonEmpty > 40) dtype = "text";
-    const idLike = (card / Math.max(nonEmpty, 1) > 0.95 && n > 20 && dtype !== "numeric")
+    // Timestamps are naturally near-unique but are features (hour, recency…), not keys —
+    // so datetime columns are exempt from the uniqueness heuristic.
+    const idLike = (card / Math.max(nonEmpty, 1) > 0.95 && n > 20 && dtype !== "numeric" && dtype !== "datetime")
       || (dtype === "numeric" && card / Math.max(nonEmpty, 1) > 0.98 && /id$|^id|_id/i.test(c));
     return { name: c, dtype, missingPct: +(100 * missing / n).toFixed(1), cardinality: card, idLike };
   });

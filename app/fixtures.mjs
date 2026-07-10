@@ -161,6 +161,16 @@ const DATASETS = [
     expect: [["task", "Clustering"], ["task", "KMeans"]],
   },
   {
+    // Mirrors the app's built-in 400-row taxi sample: a timestamp is near-unique but must
+    // stay a feature (not ID-like), and small-n regression must not claim "stratified" CV.
+    name: "NYC Taxi 400-row sample — small-n regression with timestamp",
+    source: "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page",
+    facts: { target: "fare_amount", task: { kind: "regression", targetType: "continuous" },
+      prof: prof([col("trip_id", "categorical", 400, 0, true), col("pickup_datetime", "datetime", 400), col("pickup_zone", "categorical", 10), col("trip_distance", "numeric", 350), col("tip_amount", "numeric", 300), col("total_amount", "numeric", 380)], 400),
+      answers: { timeDependent: false, needsProbs: false, regulated: false, interpretability: "nice", errorCost: "eq" }, excludedCols: ["tip_amount", "total_amount"] },
+    expect: [["models", "Small dataset"], ["fe", "Datetime"], ["validation", "Repeated k-fold"]],
+  },
+  {
     name: "Santander Transaction — high-dim, imbalanced",
     source: "https://www.kaggle.com/c/santander-customer-transaction-prediction",
     facts: { target: "target", task: { kind: "classification", targetType: "binary", nClasses: 2, imbalance: 0.10 },

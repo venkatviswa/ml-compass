@@ -154,7 +154,7 @@ export function recommend(facts) {
 
   add("validation", "Validation strategy",
     answers.timeDependent ? "Time-based split / walk-forward validation"
-      : smallN ? "Repeated stratified k-fold cross-validation"
+      : smallN ? (isClf ? "Repeated stratified k-fold cross-validation" : "Repeated k-fold cross-validation")
       : isClf ? "Stratified k-fold cross-validation" : "k-fold cross-validation",
     answers.timeDependent ? "Patterns drift over time — shuffling would leak the future into training."
       : smallN ? "Few rows make a single split noisy — repeat CV for a stable estimate."

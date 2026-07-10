@@ -21,7 +21,7 @@ The engine receives two kinds of input — and the split is deliberate.
 | per-column `dtype` | `numeric` · `categorical` · `datetime` · `text` |
 | `cardinality` | distinct values per column |
 | `missingPct` | % missing per column |
-| `idLike` | near-unique key columns (drop from features) |
+| `idLike` | near-unique key columns (drop from features); datetime columns are exempt — timestamps are near-unique by nature but are features, not keys |
 | `modalityHint` | `tabular` · `text` · `image` (a suggestion you confirm) |
 | target `kind` | `classification` · `regression` · `ordinal` |
 | `imbalance` | minority-class fraction |
@@ -123,7 +123,8 @@ Built per data type from the profile:
 | Condition | Strategy |
 |-----------|----------|
 | `timeDependent` | **Time-based split / walk-forward** (shuffling would leak the future) |
-| small n | **Repeated** stratified k-fold (one split is too noisy) |
+| small n, classification | **Repeated stratified** k-fold (one split is too noisy) |
+| small n, regression | **Repeated** k-fold (stratification is a class-label concept) |
 | classification | **Stratified** k-fold cross-validation |
 | regression | k-fold cross-validation |
 
@@ -176,9 +177,9 @@ The engine also recommends a few practical algorithms **beyond** the 18-entry gu
 ## 6. Everything here is tested
 
 These rules aren't aspirational — they're **regression-tested**. The golden suite
-(`app/rules.test.mjs`, `app/fixtures.mjs`) encodes **20 famous datasets** and asserts
+(`app/rules.test.mjs`, `app/fixtures.mjs`) encodes **21 famous datasets** and asserts
 the engine's *decisions* (task, metric, PCA, validation, leakage) against best
-practice — **71 assertions, 0 failures**. Change a rule and the suite tells you
+practice — **77 assertions, 0 failures**. Change a rule and the suite tells you
 immediately if it broke an established call.
 
 ```bash

@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ML Compass — Test Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#15202b;--soft:#445566;--paper:#fbfaf7;--panel:#fff;--line:#e3e1da;--sup:#1f6feb;--good:#1d7a3a;--goodbg:#e3f6e8;--bad:#b23b3b;--badbg:#fbe6e6;}
+  *{box-sizing:border-box;} body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;}
+  .wrap{max-width:1200px;margin:0 auto;padding:32px 20px 70px;}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:30px;margin:0 0 4px;letter-spacing:-.02em;}
+  .sub{color:var(--soft);font-size:14px;margin:0 0 6px;max-width:80ch;}
+  .summary{display:inline-block;margin:14px 0 22px;padding:8px 16px;border-radius:100px;background:var(--goodbg);color:var(--good);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px;}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:13px;}
+  th{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);text-align:left;padding:12px 14px;background:#f6f5f1;border-bottom:1px solid var(--line);}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  a{color:var(--sup);text-decoration:none;} a:hover{text-decoration:underline;}
+  .sno{font-family:'JetBrains Mono',monospace;color:var(--soft);width:38px;}
+  .ds{font-weight:600;min-width:120px;} .ds .note{font-weight:400;font-size:11.5px;color:var(--soft);margin-top:3px;font-style:italic;}
+  .src{font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;}
+  .exp{min-width:180px;} .act{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--soft);min-width:280px;line-height:1.5;}
+  .res{white-space:nowrap;}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;}
+  .badge.pass{background:var(--goodbg);color:var(--good);} .badge.fail{background:var(--badbg);color:var(--bad);}
+  .foot{margin-top:18px;color:var(--soft);font-size:12.5px;}
+</style></head><body><div class="wrap">
+  <h1>ML Compass — Test Report</h1>
+  <p class="sub">Golden tests: engine decisions vs best practice across 21 famous datasets. Assertions check decisions (metric, PCA, leakage, validation), not prose. Every dataset name and Source link opens the original dataset page.</p>
+  <div class="summary">✓ 21/21 datasets passed · 74 assertions</div>
+  <table>
+    <thead><tr><th>S.No</th><th>Dataset</th><th>Source</th><th>Expected</th><th>Actual (engine decisions)</th><th>Comment</th></tr></thead>
+    <tbody>
+  <tr>
+    <td class="sno">1</td>
+    <td class="ds"><a href="https://www.kaggle.com/c/titanic" target="_blank" rel="noopener">Titanic</a><div class="note">binary classification, mild imbalance</div></td>
+    <td class="src"><a href="https://www.kaggle.com/c/titanic" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">classification · Logistic Regression · F1 · Skip initially · PassengerId</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | baseline: DummyClassifier (majority class) → Logistic Regression | metrics: F1 / ROC-AUC · per-class precision &amp; recall | pca: Skip initially | leakage: 2 flags</td>
+    <td class="res"><span class="badge pass">PASS 5/5</span></td>
+  </tr>
+  <tr>
+    <td class="sno">2</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/53/iris" target="_blank" rel="noopener">Iris</a><div class="note">multiclass, balanced, tiny (small-n)</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/53/iris" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">classification · cross-validation · Small dataset · Repeated</td>
+    <td class="act">task: Supervised classification (multiclass, 3 classes) | models: Simple model + cross-validation first; add a single Random Forest only if CV shows a real gain | validation: Repeated stratified k-fold cross-validation</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">3</td>
+    <td class="ds"><a href="https://www.kaggle.com/c/house-prices-advanced-regression-techniques" target="_blank" rel="noopener">House Prices (Ames)</a><div class="note">regression, high-card, missing</div></td>
+    <td class="src"><a href="https://www.kaggle.com/c/house-prices-advanced-regression-techniques" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">regression · RMSE · Skip initially · Missingness indicators</td>
+    <td class="act">task: Supervised regression | metrics: MAE / RMSE (in target units) · R² | pca: Skip initially | fe: Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense. Missingness indicators for GarageType, PoolQC if informative.</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">4</td>
+    <td class="ds"><a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" target="_blank" rel="noopener">Credit Card Fraud</a><div class="note">extreme imbalance</div></td>
+    <td class="src"><a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">PR-AUC · avoid accuracy · Required · recall</td>
+    <td class="act">metrics: PR-AUC (primary) · F1 · recall at fixed precision — avoid accuracy | calibration: Required — reliability curve + Platt/isotonic</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">5</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/2/adult" target="_blank" rel="noopener">Adult / Census Income</a><div class="note">fairness-sensitive</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/2/adult" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">classification · subgroups · CatBoost · Interpretability required</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | fairness: Required — compare metrics across subgroups | models: Random Forest → CatBoost / LightGBM</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">6</td>
+    <td class="ds"><a href="https://www.kaggle.com/datasets/blastchar/telco-customer-churn" target="_blank" rel="noopener">Telco Customer Churn</a><div class="note">probabilities matter</div></td>
+    <td class="src"><a href="https://www.kaggle.com/datasets/blastchar/telco-customer-churn" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">classification · Required · recall</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | calibration: Required — reliability curve + Platt/isotonic | metrics: F1 / ROC-AUC · per-class precision &amp; recall</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">7</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">Wine Quality</a><div class="note">framing resolved to ordinal</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">ordinal · accuracy-within-1</td>
+    <td class="act">task: Supervised ordinal regression | metrics: MAE / RMSE (in target units) · R²</td>
+    <td class="res"><span class="badge pass">PASS 2/2</span></td>
+  </tr>
+  <tr>
+    <td class="sno">8</td>
+    <td class="ds"><a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">NYC Taxi</a><div class="note">regression, time-dependent, leakage</div></td>
+    <td class="src"><a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">nyc.gov ↗</a></td>
+    <td class="exp">regression · Time-based · Excluded as unknown at prediction time: tip_amount, total_amount · Datetime</td>
+    <td class="act">task: Supervised regression | validation: Time-based split / walk-forward validation | leakage: 2 flags | fe: Datetime (pickup_datetime): recency (days since), gaps between dates (tenure), day-of-week, is_weekend, cyclical sin/cos for any time-of-day. High-card categoricals: frequency or target encoding fit inside CV folds. Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense.</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">9</td>
+    <td class="ds"><a href="https://www.kaggle.com/datasets/hojjatk/mnist-dataset" target="_blank" rel="noopener">MNIST</a><div class="note">images</div></td>
+    <td class="src"><a href="https://www.kaggle.com/datasets/hojjatk/mnist-dataset" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">Image classification · CNN · augmentation</td>
+    <td class="act">task: Image classification | models: Transfer learning from a pretrained CNN → fine-tune (or a vision transformer) | fe: Data augmentation (flips, crops, normalization) instead of hand-built columns</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">10</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/228/sms+spam+collection" target="_blank" rel="noopener">SMS Spam</a><div class="note">text, imbalanced</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/228/sms+spam+collection" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">Text classification · Naive Bayes · TF-IDF · TruncatedSVD · PR-AUC</td>
+    <td class="act">task: Text classification | baseline: DummyClassifier → TF-IDF + Logistic Regression / Multinomial Naive Bayes | models: TF-IDF + linear / Naive Bayes (a linear SVM is strong on small, high-dimensional text) → embeddings or a fine-tuned transformer only if the baseline falls short | pca: TruncatedSVD, not PCA | metrics: PR-AUC (primary) · F1 · recall at fixed precision — avoid accuracy</td>
+    <td class="res"><span class="badge pass">PASS 5/5</span></td>
+  </tr>
+  <tr>
+    <td class="sno">11</td>
+    <td class="ds"><a href="https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database" target="_blank" rel="noopener">Pima Indians Diabetes</a><div class="note">medical, moderate imbalance</div></td>
+    <td class="src"><a href="https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">classification · subgroups · F1 · Required</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | fairness: Required — compare metrics across subgroups | metrics: F1 / ROC-AUC · per-class precision &amp; recall | calibration: Required — reliability curve + Platt/isotonic</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr>
+  <tr>
+    <td class="sno">12</td>
+    <td class="ds"><a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html" target="_blank" rel="noopener">California Housing</a><div class="note">clean regression</div></td>
+    <td class="src"><a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.fetch_california_housing.html" target="_blank" rel="noopener">scikit-learn.org ↗</a></td>
+    <td class="exp">regression · RMSE · Skip initially</td>
+    <td class="act">task: Supervised regression | metrics: MAE / RMSE (in target units) · R² | pca: Skip initially</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">13</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/45/heart+disease" target="_blank" rel="noopener">Heart Disease (Cleveland)</a><div class="note">medical, small-n</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/45/heart+disease" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">classification · Small dataset · cross-validation · Repeated · subgroups</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | models: Simple model + cross-validation first; add a single Random Forest only if CV shows a real gain | validation: Repeated stratified k-fold cross-validation | fairness: Required — compare metrics across subgroups</td>
+    <td class="res"><span class="badge pass">PASS 5/5</span></td>
+  </tr>
+  <tr>
+    <td class="sno">14</td>
+    <td class="ds"><a href="https://www.kaggle.com/c/spaceship-titanic" target="_blank" rel="noopener">Spaceship Titanic</a><div class="note">modern, missing + IDs</div></td>
+    <td class="src"><a href="https://www.kaggle.com/c/spaceship-titanic" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">classification · ID-like · Missingness indicators</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | leakage: 2 flags | fe: Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense. Missingness indicators for HomePlanet, CryoSleep, Age if informative.</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">15</td>
+    <td class="ds"><a href="https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic" target="_blank" rel="noopener">Breast Cancer Wisconsin</a><div class="note">correlated numeric</div></td>
+    <td class="src"><a href="https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
+    <td class="exp">classification · F1 · Skip initially</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | metrics: F1 / ROC-AUC · per-class precision &amp; recall | pca: Skip initially</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">16</td>
+    <td class="ds"><a href="https://www.kaggle.com/c/bike-sharing-demand" target="_blank" rel="noopener">Bike Sharing Demand</a><div class="note">time-dependent regression</div></td>
+    <td class="src"><a href="https://www.kaggle.com/c/bike-sharing-demand" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">regression · Time-based · Datetime</td>
+    <td class="act">task: Supervised regression | validation: Time-based split / walk-forward validation | fe: Datetime (datetime): recency (days since), gaps between dates (tenure), day-of-week, is_weekend, cyclical sin/cos for any time-of-day. Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense.</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">17</td>
+    <td class="ds"><a href="https://ai.stanford.edu/~amaas/data/sentiment/" target="_blank" rel="noopener">IMDB Reviews</a><div class="note">text, balanced</div></td>
+    <td class="src"><a href="https://ai.stanford.edu/~amaas/data/sentiment/" target="_blank" rel="noopener">ai.stanford.edu ↗</a></td>
+    <td class="exp">Text classification · TF-IDF · ROC-AUC</td>
+    <td class="act">task: Text classification | models: TF-IDF + linear / Naive Bayes (a linear SVM is strong on small, high-dimensional text) → embeddings or a fine-tuned transformer only if the baseline falls short | metrics: F1 / ROC-AUC · per-class precision &amp; recall</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">18</td>
+    <td class="ds"><a href="https://www.cs.toronto.edu/~kriz/cifar.html" target="_blank" rel="noopener">CIFAR-10</a><div class="note">images</div></td>
+    <td class="src"><a href="https://www.cs.toronto.edu/~kriz/cifar.html" target="_blank" rel="noopener">cs.toronto.edu ↗</a></td>
+    <td class="exp">Image classification · CNN · augmentation</td>
+    <td class="act">task: Image classification | models: Transfer learning from a pretrained CNN → fine-tune (or a vision transformer) | fe: Data augmentation (flips, crops, normalization) instead of hand-built columns</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">19</td>
+    <td class="ds"><a href="https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python" target="_blank" rel="noopener">Mall Customers</a><div class="note">unsupervised clustering</div></td>
+    <td class="src"><a href="https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">Clustering · KMeans</td>
+    <td class="act">task: Unsupervised → Clustering</td>
+    <td class="res"><span class="badge pass">PASS 2/2</span></td>
+  </tr>
+  <tr>
+    <td class="sno">20</td>
+    <td class="ds"><a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">NYC Taxi 400-row sample</a><div class="note">small-n regression with timestamp</div></td>
+    <td class="src"><a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page" target="_blank" rel="noopener">nyc.gov ↗</a></td>
+    <td class="exp">Small dataset · Datetime · Repeated k-fold</td>
+    <td class="act">models: Simple model + cross-validation first; add a single Random Forest only if CV shows a real gain | fe: Datetime (pickup_datetime): recency (days since), gaps between dates (tenure), day-of-week, is_weekend, cyclical sin/cos for any time-of-day. Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense. | validation: Repeated k-fold cross-validation</td>
+    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+  </tr>
+  <tr>
+    <td class="sno">21</td>
+    <td class="ds"><a href="https://www.kaggle.com/c/santander-customer-transaction-prediction" target="_blank" rel="noopener">Santander Transaction</a><div class="note">high-dim, imbalanced</div></td>
+    <td class="src"><a href="https://www.kaggle.com/c/santander-customer-transaction-prediction" target="_blank" rel="noopener">kaggle.com ↗</a></td>
+    <td class="exp">classification · PR-AUC · avoid accuracy · ID-like</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | metrics: PR-AUC (primary) · F1 · recall at fixed precision — avoid accuracy | leakage: 2 flags</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+  </tr></tbody>
+  </table>
+  <p class="foot">Generated by report.mjs from the same fixtures the test runner uses. Source URLs live in fixtures.mjs.</p>
+</div></body></html>

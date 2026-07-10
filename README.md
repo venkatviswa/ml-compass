@@ -10,7 +10,7 @@ the problem, with a reason and a caveat behind every call.
 It's a **pre-flight checklist for ML projects** — it helps you catch leakage,
 wrong metrics, validation mistakes, and poor model framing *before* training.
 
-**▶ Try the live prototype: [venkatviswa.github.io/ml-compass](https://venkatviswa.github.io/ml-compass)**
+**▶ Try the live prototype: [ml-compass.pages.dev](https://ml-compass.pages.dev)**
 
 The flow is simple: frame the business decision, profile the dataset, answer a
 few context questions, then receive a deterministic *bearing* with reasons and
@@ -59,10 +59,10 @@ design removes.
 | `MLCompass.jsx` | **UI** | The React component: the four‑stage wizard, profile table, question cards, and the bearing report. Pure presentation + state — contains no decision logic. In a Next.js app, add `"use client";` as the first line. |
 | `rules.mjs` | **Business logic** | The deterministic advisor engine. `recommend(facts)` takes a profile + answers and returns structured sections (task, baseline, model families, metrics, PCA, feature engineering, validation, leakage, calibration, fairness). Branches for tabular, text, image, and unsupervised paths, plus small‑n and ordinal‑framing handling. **Single source of truth** — imported by both the UI and the tests. |
 | `profiler.mjs` | **Business logic** | Dataset profiling (`profile`), target analysis with framing‑ambiguity detection (`targetFacts`), the synthetic NYC‑taxi `makeSample`, and the tunable thresholds (`SMALL_N`, `HIGH_CARD`, `ORDINAL_MAX`). No React. |
-| `rules.test.mjs` | **Tests** | Golden-test runner: asserts the engine's *decisions* against best practice across 20 datasets. Run with `node app/rules.test.mjs`. |
-| `fixtures.mjs` | **Tests** | The 20 famous datasets encoded as profiles + answers + expected assertions, chosen for branch coverage. |
+| `rules.test.mjs` | **Tests** | Golden-test runner: asserts the engine's *decisions* against best practice across 21 datasets. Run with `node app/rules.test.mjs`. |
+| `fixtures.mjs` | **Tests** | The 21 famous datasets encoded as profiles + answers + expected assertions, chosen for branch coverage. |
 | `explainer.mjs` | **Business logic** *(optional)* | The optional, **tiered** LLM "explainer." `explainSections(sections)` rephrases the rules' text into plain English and **never changes a decision**. It tries Workers AI → on-device (WebLLM) → deterministic text, falling back automatically on any failure. Whatever the tier, the decision and caveat are shown **verbatim** and only the rationale is reworded — accepted only if it stays faithful (a content-overlap guard rejects over-summaries and fact-drift). The policy is enforced client-side in `explainer.mjs`, so it holds for any provider. On-device is **opt-in** (a one-time model download), desktop-only (the multi-GB model would crash phones), and the choice is remembered. The app is fully functional and $0 without any of it. |
-| `functions/api/explain.js` | **Serverless** *(optional)* | A Cloudflare Pages Function that proxies to Workers AI (free tier). Holds no API key — it uses the platform's `AI` binding. Returns a non-200 on any error (incl. daily quota) so the client falls back. Swap the `MODEL` constant for Gemma, Phi, Llama, etc. |
+| `functions/api/explain.js` | **Serverless** *(optional)* | A Cloudflare Pages Function that proxies to Workers AI (free tier). Holds no API key — it uses the platform's `AI` binding. Returns a non-200 on any error (incl. daily quota) so the client falls back. Tries the `MODELS` list in order, so one deprecated model id doesn't kill the tier. |
 | `next.config.mjs` | **Config** | Static export (`output: "export"`) so `next build` emits a fully static `./out` hostable anywhere. |
 | `report.mjs` | **Tooling** | Generates the Markdown/HTML test report from the golden suite (`npm run report`). |
 | `docs/engine-rules.md` | **Docs** | Human-readable spec of every rule the engine follows, plus its algorithm coverage vs a practitioner field guide. |
@@ -93,7 +93,7 @@ npm run build      # emits a static ./out for hosting (output: "export")
 **The tests (no framework needed):**
 
 ```bash
-node rules.test.mjs
+node app/rules.test.mjs
 ```
 
 ## The optional LLM explainer
@@ -141,11 +141,11 @@ See **DEPLOY.md** for the full hosting walkthrough.
 Model *choice* has a range of defensible answers, so the suite asserts on the
 **decisions that have a clear right/wrong** — the metric, the PCA call, leakage
 flags, validation strategy, calibration, and fairness — rather than on prose.
-The 20 datasets are chosen for **branch coverage**: each one exercises a different
+The 21 datasets are chosen for **branch coverage**: each one exercises a different
 rule (extreme imbalance → PR‑AUC; small‑n → simple‑model‑first; high cardinality →
 CatBoost; time‑dependent → time‑split; medical → subgroup fairness; numeric‑few‑values
 → ordinal framing; text → TF‑IDF + Naive Bayes; images → CNN; no target → clustering).
-Current status: **20 datasets, 71 assertions, 0 failures.**
+Current status: **21 datasets, 77 assertions, 0 failures.**
 
 Datasets covered: Titanic, Iris, House Prices (Ames), Credit Card Fraud, Adult/Census
 Income, Telco Churn, Wine Quality, NYC Taxi, MNIST, SMS Spam, Pima Diabetes,

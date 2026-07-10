@@ -25,6 +25,7 @@ const MODELS = [
 const SYSTEM = [
   "You rewrite the rationale of machine-generated ML recommendations in clear, warm, plain English.",
   "Keep every model name, metric, number, and column name exactly as written. Never change the meaning.",
+  "Do not add explanations, examples, or equivalences that are not in the original.",
   "Input: one section per line, formatted 'id :: decision :: rationale'.",
   "Output: one line per section, formatted exactly 'id :: rewritten rationale' (1-2 short sentences).",
   "No other text, no blank lines, no JSON, no markdown.",
