@@ -186,7 +186,7 @@ The engine also recommends a few practical algorithms **beyond** the 18-entry gu
 These rules aren't aspirational — they're **regression-tested**. The golden suite
 (`app/rules.test.mjs`, `app/fixtures.mjs`) encodes **21 famous datasets** and asserts
 the engine's *decisions* (task, metric, PCA, validation, leakage) against best
-practice — **87 assertions, 0 failures**. Change a rule and the suite tells you
+practice — **95 assertions, 0 failures**. Change a rule and the suite tells you
 immediately if it broke an established call.
 
 ```bash

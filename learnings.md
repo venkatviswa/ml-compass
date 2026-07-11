@@ -82,4 +82,45 @@ problem we actually hit, what it turned out to be, and the rule we now follow.
   stale history and silently revert newer work (this bit us once — the mobile-crash
   fix and landing UX). Reconcile file-by-file; prefer branches/PRs over zips.
 - **A rule that can't be tested doesn't ship.** Every engine fix in this file landed
-  with a fixture or unit check in the same commit. Suite: 21 datasets · 77 assertions.
+  with a fixture or unit check in the same commit — the runner prints the current totals.
+
+## Headless / MCP (agentic use)
+
+- **Conditional questions vanish in agentic flows.** The UI re-renders its question
+  list reactively, so nobody noticed the set *depends on an earlier answer* — until a
+  live agent answered "classification" and skipped needsProbs/errorCost entirely,
+  silently losing the calibration advice. Guards now live at both ends: list_questions
+  *warns* that the set grows, and get_bearing returns `unansweredQuestions` when
+  relevant answers are missing. *Rule: in agent flows, guard at the decision point —
+  you can't rely on the client to re-ask.*
+- **Client agents paraphrase your tool output — notes are behavioral levers.** A
+  summarizer once turned "F1 / ROC-AUC" into "Macro-F1 / accuracy". Adding "quote each
+  decision verbatim" to the tool response's `note` field visibly changed agent
+  behavior on the next run. Treat response notes as part of the API contract.
+- **Privacy splits the deployment shape.** Local stdio server reads CSVs from disk
+  (raw data never leaves the machine, no LLM inside, works offline); the remote worker
+  accepts only the computed profile — sending rows is structurally impossible. That
+  split is what keeps the article's privacy claims true in both modes.
+- **Test the transport, not just the logic.** The committed e2e harness speaks real
+  JSON-RPC to the spawned server (initialize → tools/list → tools/call), which caught
+  things pure function tests can't (schema shape, error paths, BOM-laden CSVs).
+- **Field notes from real runs:** `env: node: No such file or directory` = Node
+  missing/not on the spawned PATH (Claude Desktop needs the absolute node path);
+  a stdio server is spawned per client session, so `git pull` needs a session restart;
+  question-asking UIs may cap at 4 per prompt (client limit, not yours).
+
+## External reviews as free QA
+
+- **Every reviewer pass found something real** — a fabricated-anecdote suggestion we
+  rejected (fiction clashes with a credibility-first article), and genuine engine gaps
+  we shipped: monotonic constraints + EBMs for regulated settings, the anti-SMOTE
+  calibration warning, a concrete ordinal path (Frank & Hall / `mord`), and sentinel
+  detection. Triage honestly: verify each claim against the code before acting —
+  half of this review's "gaps" were already handled and needed no change.
+- **Advisory beats automatic for data-quality flags.** Sentinel detection (glucose = 0)
+  flags and *asks* rather than auto-treating as missing — a 0 in `tip_amount` is real,
+  a 0 in `Glucose` isn't, and only the human knows which. The cardinality bar
+  (continuous-looking columns only) is what keeps 0/1 flags and counts out of it.
+- **Don't hardcode counts you'll outgrow.** "20 datasets, 71 assertions" was baked
+  into five documents and has been re-synced five times since. Captions and badges are
+  now number-free; the remaining count claims are greppable and listed in CLAUDE.md.

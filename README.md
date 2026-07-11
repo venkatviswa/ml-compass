@@ -184,7 +184,14 @@ The 21 datasets are chosen for **branch coverage**: each one exercises a differe
 rule (extreme imbalance → PR‑AUC; small‑n → simple‑model‑first; high cardinality →
 CatBoost; time‑dependent → time‑split; medical → subgroup fairness; numeric‑few‑values
 → ordinal framing; text → TF‑IDF + Naive Bayes; images → CNN; no target → clustering).
-Current status: **21 datasets, 87 assertions, 0 failures.**
+Beyond the dataset fixtures, the runner carries **unit checks for the layers the
+fixtures can't reach**: the profiler's heuristics (datetime ≠ ID-like, sentinel spikes
+vs legitimate 0/1 flags), the shared question/framing helpers (`questionKeys`,
+`resolveTask`), and the explainer's faithfulness guard (`faithfulRewording`) — the
+single policy point behind "rules decide, the LLM only rephrases." The MCP server has
+its own end-to-end test over real JSON-RPC (`npm run test:mcp`).
+
+Current status: **21 datasets, 95 assertions, 0 failures.**
 
 Datasets covered: Titanic, Iris, House Prices (Ames), Credit Card Fraud, Adult/Census
 Income, Telco Churn, Wine Quality, NYC Taxi, MNIST, SMS Spam, Pima Diabetes,

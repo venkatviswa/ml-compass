@@ -1,6 +1,7 @@
 // rules.test.mjs — golden tests. Run: node rules.test.mjs
-import { recommend, sectionText } from "./rules.mjs";
+import { recommend, sectionText, questionKeys, resolveTask } from "./rules.mjs";
 import { profile, makeSample } from "./profiler.mjs";
+import { faithfulRewording } from "./explainer.mjs";
 import { DATASETS } from "./fixtures.mjs";
 
 let pass = 0, fail = 0; const failed = [];
@@ -27,6 +28,44 @@ console.log(`\n=== ML Compass · golden tests vs best practice (${DATASETS.lengt
   console.log("• Profiler heuristics — built-in taxi sample");
   for (const [label, ok] of checks) {
     ok ? pass++ : (fail++, failed.push(`profiler :: ${label}`));
+    console.log(`   ${ok ? "✓" : "✗"} ${label}`);
+  }
+  console.log("");
+}
+
+// Engine helpers — question selection and framing resolution (shared by UI + MCP servers).
+{
+  const prof = { nRows: 100, cols: [], modalityHint: "tabular" };
+  const ambiguous = { kind: "regression", targetType: "ordinal", framingAmbiguous: true, nClasses: 2, imbalance: 0.3 };
+  const asClf = resolveTask(ambiguous, { framing: "classification" });
+  const clfKeys = questionKeys(prof, asClf, false);
+  const checks = [
+    ["no target → only the unsupervised-goal question", questionKeys(prof, null, true).join() === "unsupGoal"],
+    ["ambiguous numeric target → framing question asked", questionKeys(prof, ambiguous, false).includes("framing")],
+    ["framing resolved to classification → needsProbs + errorCost appear", clfKeys.includes("needsProbs") && clfKeys.includes("errorCost")],
+    ["resolveTask updates kind AND targetType (binary for 2 classes)", asClf.kind === "classification" && asClf.targetType === "binary"],
+  ];
+  console.log("• Engine helpers — questionKeys / resolveTask");
+  for (const [label, ok] of checks) {
+    ok ? pass++ : (fail++, failed.push(`helpers :: ${label}`));
+    console.log(`   ${ok ? "✓" : "✗"} ${label}`);
+  }
+  console.log("");
+}
+
+// Explainer faithfulness guard — the single policy point behind invariant #1
+// ("rules decide; the LLM only rephrases"). Worst case must be the exact rules text.
+{
+  const reason = "Reasonably balanced classes; standard classification metrics apply.";
+  const checks = [
+    ["faithful rewording accepted", faithfulRewording(reason, "The classes are fairly balanced, so standard classification metrics apply well.") !== null],
+    ["fact-drift rejected (balanced → multiple classes)", faithfulRewording(reason, "We're dealing with multiple classes and need to evaluate performance.") === null],
+    ["field-label echo rejected", faithfulRewording(reason, "WHY: balanced classes; standard classification metrics apply. CAVEAT: none") === null],
+    ["run-on rejected", faithfulRewording(reason, ("balanced classes standard classification metrics apply ").repeat(8)) === null],
+  ];
+  console.log("• Explainer faithfulness guard — faithfulRewording");
+  for (const [label, ok] of checks) {
+    ok ? pass++ : (fail++, failed.push(`explainer :: ${label}`));
     console.log(`   ${ok ? "✓" : "✗"} ${label}`);
   }
   console.log("");

@@ -116,7 +116,7 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 ![Test report: every dataset asserted against best practice — zero failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty-one datasets, eighty-seven assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+Twenty-one datasets, ninety-five assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Your AI agent can consult it too (MCP)
 

@@ -173,7 +173,8 @@ function preservesContent(original, candidate) {
 
 // Single policy point for accepting a reworded rationale, whatever tier produced it.
 // Returns the cleaned rewording, or null to keep the deterministic text.
-function faithfulRewording(originalReason, text) {
+// Exported so the guard itself is under test (rules.test.mjs) — it enforces invariant #1.
+export function faithfulRewording(originalReason, text) {
   let v = (text || "").trim();
   v = v.replace(/^(rationale|why|answer|decision)\s*:\s*/i, "").trim();   // strip a stray label
   v = v.replace(/^["'“]+|["'”]+$/g, "").trim();                           // strip wrapping quotes

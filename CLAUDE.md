@@ -13,7 +13,7 @@ rephrases.** Next.js static export; all decision logic runs client-side.
 | `app/profiler.mjs` | Profiling | Dataset facts + all tunable thresholds (`SMALL_N`, `HIGH_CARD`, `ORDINAL_MAX`, sentinel thresholds). |
 | `app/explainer.mjs` | Optional LLM | Tiered: Workers AI → opt-in on-device (WebLLM) → deterministic text. |
 | `app/MLCompass.jsx` | UI only | Presentation + state. **Never put decision logic here.** |
-| `app/fixtures.mjs`, `app/rules.test.mjs` | Golden tests | 21 datasets, 87 assertions on decisions. |
+| `app/fixtures.mjs`, `app/rules.test.mjs` | Golden tests | 21 datasets, 95 assertions on decisions. |
 | `functions/api/explain.js` | Serverless | Cloudflare Pages Function (Workers AI, `env.AI` binding). |
 | `mcp/server.mjs` | Headless | Local MCP server (stdio) over the same engine; e2e test `npm run test:mcp`. |
 | `mcp-worker/` | Headless | Remote MCP server (Cloudflare Worker, agents SDK). **Profile-in only — never accept raw rows remotely.** Separate deployable with its own wrangler.jsonc. |
@@ -36,15 +36,24 @@ rephrases.** Next.js static export; all decision logic runs client-side.
 5. **On-device LLM is opt-in and desktop-only.** The multi-GB download crashes mobile
    tabs. Don't weaken `canRunBrowserLLM()` or the opt-in gate (`allowLLM`).
 6. **Docs follow code.** A change to engine behavior updates `docs/engine-rules.md`
-   (and README/article claims if they state the old behavior).
+   (and README/article claims if they state the old behavior). Assertion counts are
+   stated in CLAUDE.md, README, engine-rules.md and the article — grep for the old
+   number after changing the suite; prefer number-free phrasing in captions/badges.
+7. **Headless parity.** The MCP servers share the engine and carry behavioral guards in
+   their responses — the verbatim-decision note, the framing-dependent-questions note,
+   and `unansweredQuestions`. Don't strip them; agents act on them.
 
 ## Commands
 
 ```bash
-npm run dev      # local dev server
-npm run build    # static export → ./out (must stay green)
-npm test         # golden suite — 21 datasets, 87 assertions, 0 failures expected
-npm run report   # regenerate the test report in docs/
+npm run dev       # local dev server
+npm run build     # static export → ./out (must stay green)
+npm test          # golden suite — 21 datasets, 95 assertions, 0 failures expected
+                  #   (fixtures + unit checks: profiler heuristics, questionKeys/resolveTask,
+                  #    faithfulRewording — the invariant-#1 guard)
+npm run test:mcp  # end-to-end: drives the stdio MCP server over real JSON-RPC (11 checks)
+npm run mcp       # run the local MCP server (stdio) by hand
+npm run report    # regenerate the test report in docs/
 ```
 
 ## Deploy targets
