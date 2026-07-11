@@ -25,6 +25,7 @@ The engine receives two kinds of input — and the split is deliberate.
 | `modalityHint` | `tabular` · `text` · `image` (a suggestion you confirm) |
 | target `kind` | `classification` · `regression` · `ordinal` |
 | `imbalance` | minority-class fraction |
+| `sentinel` | a continuous numeric column spiking at a placeholder value (glucose = 0, income = -999) — likely missing data in disguise |
 
 **Answered by you (~5 taps — only what the data can't reveal):**
 
@@ -44,6 +45,9 @@ All tunable constants live in one place (`app/profiler.mjs`), so the behavior is
 | `HIGH_CARD` | **30** | a categorical with more levels than this → "high-cardinality" |
 | `ORDINAL_MAX` | **15** | a *numeric* target with ≤ this many distinct values → **framing-ambiguous** (asks you) |
 | imbalance cutoff | **0.20** | minority class < 20% → imbalanced-aware metrics |
+| `SENTINEL_ZERO_SHARE` | **0.15** | share of exact 0s in a continuous column (≥ `SENTINEL_MIN_CARD` distinct values) → sentinel flag |
+| `SENTINEL_SHARE` | **0.05** | share of a classic placeholder (-1, ±999, ±9999…) → sentinel flag |
+| `SENTINEL_MIN_CARD` | **30** | sentinel checks only apply to continuous-looking columns — spares 0/1 flags and counts |
 
 ---
 
@@ -104,6 +108,8 @@ Caveats added when relevant:
 | image classification | Accuracy / macro-F1 · top-k |
 | `errorCost = fn` | weight **recall**, tune the threshold |
 | `errorCost = fp` | weight **precision**, tune the threshold |
+| imbalanced | caveat: **don't rebalance blindly** — SMOTE/undersampling shift predicted probabilities and break calibration; prefer class weights + threshold tuning, resample only inside CV folds if at all |
+| ordinal | caveat: report **accuracy-within-1**; use **ordered logistic** or K-1 cumulative binary classifiers (**Frank & Hall**; `mord` in Python) — plain multiclass log-loss discards the ordering |
 
 ### PCA decision
 | Branch | Decision |
@@ -118,6 +124,7 @@ Built per data type from the profile:
 - **High-card categoricals** → frequency / target encoding fit inside CV folds.
 - **Low-card categoricals** → one-hot. **Numeric** → ratios / differences where they make domain sense.
 - **Columns with missing values** → missingness indicators if informative.
+- **Sentinel-flagged columns** → confirm the value is physically possible; if not, convert to NaN + missingness indicator (missing data in disguise).
 
 ### Validation strategy
 | Condition | Strategy |
@@ -137,7 +144,7 @@ Flags raised:
 
 ### Probability calibration & subgroup evaluation
 - `needsProbs` (classification) → **calibration required** (reliability curve + Platt/isotonic; check Brier score).
-- `regulated` → **subgroup evaluation required** (overall averages hide subgroup failures); prefer interpretable models / SHAP.
+- `regulated` → **subgroup evaluation required** (overall averages hide subgroup failures); prefer interpretable models — **EBMs (InterpretML)** as the accuracy/interpretability middle ground — or SHAP-explained trees, and add **monotonic constraints** (XGBoost/LightGBM/CatBoost) where the domain direction is known.
 
 ---
 
@@ -179,7 +186,7 @@ The engine also recommends a few practical algorithms **beyond** the 18-entry gu
 These rules aren't aspirational — they're **regression-tested**. The golden suite
 (`app/rules.test.mjs`, `app/fixtures.mjs`) encodes **21 famous datasets** and asserts
 the engine's *decisions* (task, metric, PCA, validation, leakage) against best
-practice — **77 assertions, 0 failures**. Change a rule and the suite tells you
+practice — **87 assertions, 0 failures**. Change a rule and the suite tells you
 immediately if it broke an established call.
 
 ```bash

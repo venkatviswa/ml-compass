@@ -24,7 +24,7 @@
 </style></head><body><div class="wrap">
   <h1>ML Compass — Test Report</h1>
   <p class="sub">Golden tests: engine decisions vs best practice across 21 famous datasets. Assertions check decisions (metric, PCA, leakage, validation), not prose. Every dataset name and Source link opens the original dataset page.</p>
-  <div class="summary">✓ 21/21 datasets passed · 74 assertions</div>
+  <div class="summary">✓ 21/21 datasets passed · 82 assertions</div>
   <table>
     <thead><tr><th>S.No</th><th>Dataset</th><th>Source</th><th>Expected</th><th>Actual (engine decisions)</th><th>Comment</th></tr></thead>
     <tbody>
@@ -56,17 +56,17 @@
     <td class="sno">4</td>
     <td class="ds"><a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" target="_blank" rel="noopener">Credit Card Fraud</a><div class="note">extreme imbalance</div></td>
     <td class="src"><a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" target="_blank" rel="noopener">kaggle.com ↗</a></td>
-    <td class="exp">PR-AUC · avoid accuracy · Required · recall</td>
+    <td class="exp">PR-AUC · avoid accuracy · Required · recall · class weights · break calibration</td>
     <td class="act">metrics: PR-AUC (primary) · F1 · recall at fixed precision — avoid accuracy | calibration: Required — reliability curve + Platt/isotonic</td>
-    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+    <td class="res"><span class="badge pass">PASS 6/6</span></td>
   </tr>
   <tr>
     <td class="sno">5</td>
     <td class="ds"><a href="https://archive.ics.uci.edu/dataset/2/adult" target="_blank" rel="noopener">Adult / Census Income</a><div class="note">fairness-sensitive</div></td>
     <td class="src"><a href="https://archive.ics.uci.edu/dataset/2/adult" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
-    <td class="exp">classification · subgroups · CatBoost · Interpretability required</td>
+    <td class="exp">classification · subgroups · CatBoost · Interpretability required · monotonic constraints · EBMs</td>
     <td class="act">task: Supervised classification (binary, 2 classes) | fairness: Required — compare metrics across subgroups | models: Random Forest → CatBoost / LightGBM</td>
-    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+    <td class="res"><span class="badge pass">PASS 6/6</span></td>
   </tr>
   <tr>
     <td class="sno">6</td>
@@ -80,9 +80,9 @@
     <td class="sno">7</td>
     <td class="ds"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">Wine Quality</a><div class="note">framing resolved to ordinal</div></td>
     <td class="src"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
-    <td class="exp">ordinal · accuracy-within-1</td>
+    <td class="exp">ordinal · accuracy-within-1 · Frank &amp; Hall · mord</td>
     <td class="act">task: Supervised ordinal regression | metrics: MAE / RMSE (in target units) · R²</td>
-    <td class="res"><span class="badge pass">PASS 2/2</span></td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
   </tr>
   <tr>
     <td class="sno">8</td>
@@ -112,9 +112,9 @@
     <td class="sno">11</td>
     <td class="ds"><a href="https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database" target="_blank" rel="noopener">Pima Indians Diabetes</a><div class="note">medical, moderate imbalance</div></td>
     <td class="src"><a href="https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database" target="_blank" rel="noopener">kaggle.com ↗</a></td>
-    <td class="exp">classification · subgroups · F1 · Required</td>
-    <td class="act">task: Supervised classification (binary, 2 classes) | fairness: Required — compare metrics across subgroups | metrics: F1 / ROC-AUC · per-class precision &amp; recall | calibration: Required — reliability curve + Platt/isotonic</td>
-    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+    <td class="exp">classification · subgroups · F1 · Required · Sentinel check · missing values in disguise</td>
+    <td class="act">task: Supervised classification (binary, 2 classes) | fairness: Required — compare metrics across subgroups | metrics: F1 / ROC-AUC · per-class precision &amp; recall | calibration: Required — reliability curve + Platt/isotonic | fe: Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense. Sentinel check — Insulin (48.7% exactly 0): confirm these values are physically possible; if not, they're missing values in disguise — convert to NaN and add a missingness indicator.</td>
+    <td class="res"><span class="badge pass">PASS 6/6</span></td>
   </tr>
   <tr>
     <td class="sno">12</td>

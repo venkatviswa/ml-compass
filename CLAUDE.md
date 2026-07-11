@@ -10,10 +10,10 @@ rephrases.** Next.js static export; all decision logic runs client-side.
 | Path | Layer | Rule |
 |------|-------|------|
 | `app/rules.mjs` | Decision engine | **Single source of truth.** Every recommendation lives here. |
-| `app/profiler.mjs` | Profiling | Dataset facts + all tunable thresholds (`SMALL_N`, `HIGH_CARD`, `ORDINAL_MAX`). |
+| `app/profiler.mjs` | Profiling | Dataset facts + all tunable thresholds (`SMALL_N`, `HIGH_CARD`, `ORDINAL_MAX`, sentinel thresholds). |
 | `app/explainer.mjs` | Optional LLM | Tiered: Workers AI → opt-in on-device (WebLLM) → deterministic text. |
 | `app/MLCompass.jsx` | UI only | Presentation + state. **Never put decision logic here.** |
-| `app/fixtures.mjs`, `app/rules.test.mjs` | Golden tests | 21 datasets, 77 assertions on decisions. |
+| `app/fixtures.mjs`, `app/rules.test.mjs` | Golden tests | 21 datasets, 87 assertions on decisions. |
 | `functions/api/explain.js` | Serverless | Cloudflare Pages Function (Workers AI, `env.AI` binding). |
 | `mcp/server.mjs` | Headless | Local MCP server (stdio) over the same engine; e2e test `npm run test:mcp`. |
 | `mcp-worker/` | Headless | Remote MCP server (Cloudflare Worker, agents SDK). **Profile-in only — never accept raw rows remotely.** Separate deployable with its own wrangler.jsonc. |
@@ -43,7 +43,7 @@ rephrases.** Next.js static export; all decision logic runs client-side.
 ```bash
 npm run dev      # local dev server
 npm run build    # static export → ./out (must stay green)
-npm test         # golden suite — 21 datasets, 77 assertions, 0 failures expected
+npm test         # golden suite — 21 datasets, 87 assertions, 0 failures expected
 npm run report   # regenerate the test report in docs/
 ```
 

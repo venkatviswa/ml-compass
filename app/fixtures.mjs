@@ -1,7 +1,7 @@
 // fixtures.mjs — dataset fixtures shared by the test runner and the report generator.
 
-const col = (name, dtype, cardinality = 10, missingPct = 0, idLike = false) =>
-  ({ name, dtype, cardinality, missingPct, idLike });
+const col = (name, dtype, cardinality = 10, missingPct = 0, idLike = false, sentinel = null) =>
+  ({ name, dtype, cardinality, missingPct, idLike, sentinel });
 const prof = (cols, nRows) => ({ nRows, nCols: cols.length, cols });
 
 const DATASETS = [
@@ -36,7 +36,7 @@ const DATASETS = [
     facts: { target: "Class", task: { kind: "classification", targetType: "binary", nClasses: 2, imbalance: 0.0017 },
       prof: prof([...Array.from({ length: 28 }, (_, i) => col("V" + (i + 1), "numeric", 284807)), col("Time", "numeric", 124592), col("Amount", "numeric", 32767)], 284807),
       answers: { timeDependent: false, needsProbs: true, regulated: false, interpretability: "no", errorCost: "fn" }, excludedCols: [] },
-    expect: [["metrics", "PR-AUC"], ["metrics", "avoid accuracy"], ["calibration", "Required"], ["metrics", "recall"]],
+    expect: [["metrics", "PR-AUC"], ["metrics", "avoid accuracy"], ["calibration", "Required"], ["metrics", "recall"], ["metrics", "class weights"], ["metrics", "break calibration"]],
   },
   {
     name: "Adult / Census Income — fairness-sensitive",
@@ -44,7 +44,7 @@ const DATASETS = [
     facts: { target: "income", task: { kind: "classification", targetType: "binary", nClasses: 2, imbalance: 0.24 },
       prof: prof([col("age", "numeric", 73), col("workclass", "categorical", 9, 5.6), col("occupation", "categorical", 15, 5.7), col("native_country", "categorical", 42, 1.8), col("sex", "categorical", 2), col("race", "categorical", 5)], 48842),
       answers: { timeDependent: false, needsProbs: false, regulated: true, interpretability: "must", errorCost: "eq" }, excludedCols: [] },
-    expect: [["task", "classification"], ["fairness", "subgroups"], ["models", "CatBoost"], ["models", "Interpretability required"]],
+    expect: [["task", "classification"], ["fairness", "subgroups"], ["models", "CatBoost"], ["models", "Interpretability required"], ["fairness", "monotonic constraints"], ["fairness", "EBMs"]],
   },
   {
     name: "Telco Customer Churn — probabilities matter",
@@ -60,7 +60,7 @@ const DATASETS = [
     facts: { target: "quality", task: { kind: "ordinal", targetType: "ordinal", nClasses: 6, imbalance: 0.04 },
       prof: prof([col("alcohol", "numeric", 65), col("pH", "numeric", 89), col("citric_acid", "numeric", 80), col("sulphates", "numeric", 96)], 1599),
       answers: { timeDependent: false, needsProbs: false, regulated: false, interpretability: "nice", errorCost: "eq" }, excludedCols: [] },
-    expect: [["task", "ordinal"], ["metrics", "accuracy-within-1"]],
+    expect: [["task", "ordinal"], ["metrics", "accuracy-within-1"], ["metrics", "Frank & Hall"], ["metrics", "mord"]],
   },
   {
     name: "NYC Taxi — regression, time-dependent, leakage",
@@ -92,9 +92,9 @@ const DATASETS = [
     name: "Pima Indians Diabetes — medical, moderate imbalance",
     source: "https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database",
     facts: { target: "Outcome", task: { kind: "classification", targetType: "binary", nClasses: 2, imbalance: 0.349 },
-      prof: prof([col("Pregnancies", "numeric", 17), col("Glucose", "numeric", 136), col("BloodPressure", "numeric", 47), col("BMI", "numeric", 248), col("Age", "numeric", 52), col("Insulin", "numeric", 186)], 768),
+      prof: prof([col("Pregnancies", "numeric", 17), col("Glucose", "numeric", 136), col("BloodPressure", "numeric", 47), col("BMI", "numeric", 248), col("Age", "numeric", 52), col("Insulin", "numeric", 186, 0, false, { value: 0, pct: 48.7 })], 768),
       answers: { timeDependent: false, needsProbs: true, regulated: true, interpretability: "must", errorCost: "fn" }, excludedCols: [] },
-    expect: [["task", "classification"], ["fairness", "subgroups"], ["metrics", "F1"], ["calibration", "Required"]],
+    expect: [["task", "classification"], ["fairness", "subgroups"], ["metrics", "F1"], ["calibration", "Required"], ["fe", "Sentinel check"], ["fe", "missing values in disguise"]],
   },
   {
     name: "California Housing — clean regression",

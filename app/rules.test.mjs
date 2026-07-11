@@ -11,10 +11,18 @@ console.log(`\n=== ML Compass · golden tests vs best practice (${DATASETS.lengt
 {
   const p = profile(makeSample());
   const byName = Object.fromEntries(p.cols.map((c) => [c.name, c]));
+  // Sentinel heuristic: a continuous column spiking at 0 must flag; a 0/1 flag column must not.
+  const sRows = Array.from({ length: 50 }, (_, i) => ({
+    glucose: i < 15 ? "0" : String(80 + i * 1.5),   // 30% zeros, 36 distinct values
+    smoker: String(i % 2),                            // legitimate 0/1 flag
+  }));
+  const sProf = Object.fromEntries(profile(sRows).cols.map((c) => [c.name, c]));
   const checks = [
     ["pickup_datetime detected as datetime", byName.pickup_datetime?.dtype === "datetime"],
     ["pickup_datetime NOT flagged ID-like", byName.pickup_datetime?.idLike === false],
     ["trip_id flagged ID-like", byName.trip_id?.idLike === true],
+    ["zero-heavy continuous column flagged as sentinel", sProf.glucose?.sentinel?.value === 0],
+    ["0/1 flag column NOT flagged as sentinel", !sProf.smoker?.sentinel],
   ];
   console.log("• Profiler heuristics — built-in taxi sample");
   for (const [label, ok] of checks) {

@@ -13,8 +13,10 @@ function clfMetrics(add, task, answers) {
         : "F1 / ROC-AUC · per-class precision & recall",
     imb ? `Minority class is ${(task.imbalance * 100).toFixed(1)}% — accuracy would look great while missing it.`
         : "Reasonably balanced classes; standard classification metrics apply.",
-    answers.errorCost === "fn" ? "False negatives cost more → weight recall, tune the threshold."
-      : answers.errorCost === "fp" ? "False positives cost more → weight precision, tune the threshold." : null,
+    [imb ? "Resist blind rebalancing: SMOTE/undersampling shift predicted probabilities and break calibration — prefer class weights + threshold tuning, and resample only inside CV folds if at all." : null,
+     answers.errorCost === "fn" ? "False negatives cost more → weight recall, tune the threshold."
+       : answers.errorCost === "fp" ? "False positives cost more → weight precision, tune the threshold." : null,
+    ].filter(Boolean).join(" ") || null,
     imb ? "amber" : "sup");
 }
 function calibrationAndFairness(add, isClf, answers) {
@@ -24,7 +26,7 @@ function calibrationAndFairness(add, isClf, answers) {
   if (answers.regulated)
     add("fairness", "Subgroup evaluation", "Required — compare metrics across subgroups",
       "High-stakes / regulated: overall averages can hide subgroup failures (age, sex, geography — where permitted).",
-      "Prefer interpretable models or SHAP-explained trees; document everything.", "amber");
+      "Prefer interpretable models — EBMs (InterpretML) are a strong accuracy/interpretability middle ground — or SHAP-explained trees. Where domain direction is known (risk can't fall as blood pressure rises), add monotonic constraints (XGBoost/LightGBM/CatBoost support them). Document everything.", "amber");
 }
 
 // facts = { modality, task, prof, answers, target, excludedCols }
@@ -136,7 +138,7 @@ export function recommend(facts) {
   if (isClf) clfMetrics(add, task, answers);
   else add("metrics", "Evaluation metrics", "MAE / RMSE (in target units) · R²",
     "Report errors in the unit stakeholders care about, plus a business threshold.",
-    kind === "ordinal" ? "Also report accuracy-within-1 and consider ordinal-aware models (e.g. ordered logistic)." : null);
+    kind === "ordinal" ? "Also report accuracy-within-1 and use ordinal-aware models: ordered logistic, or K-1 cumulative binary classifiers (Frank & Hall) — `mord` implements both in Python. Plain multiclass log-loss discards the ordering." : null);
 
   add("pca", "PCA decision", "Skip initially",
     smallN
@@ -151,6 +153,8 @@ export function recommend(facts) {
   fe.push("Low-card categoricals: one-hot. Numeric: ratios/differences where they make domain sense.");
   const missCols = usableCols.filter((c) => c.missingPct > 0).map((c) => c.name);
   if (missCols.length) fe.push(`Missingness indicators for ${missCols.slice(0, 3).join(", ")} if informative.`);
+  const sentinels = usableCols.filter((c) => c.sentinel).map((c) => `${c.name} (${c.sentinel.pct}% exactly ${c.sentinel.value})`);
+  if (sentinels.length) fe.push(`Sentinel check — ${sentinels.join(", ")}: confirm these values are physically possible; if not, they're missing values in disguise — convert to NaN and add a missingness indicator.`);
   add("fe", "Feature engineering plan", fe.join(" "),
     "Highest-leverage step for tabular ML — work by data type, then interactions and aggregates.");
 

@@ -106,7 +106,7 @@ Here's the bearing ML Compass returns from those answers:
 4. **Start simple** — logistic baseline, then gradient boosting, and keep the complex model only if it clears the baseline by a real margin.
 5. **Calibrate before you rank** — so the retention team can trust a "70% risk."
 
-Now take the same idea somewhere higher-stakes — a clinic predicting which patients are at risk for diabetes. Answer its questions honestly and the advice shifts with them: mark the setting as **regulated/high-stakes** and it requires checking performance *across subgroups* (does it do worse for an age band or sex?) and leaning on interpretable models you can defend. A risk score used for triage **must be calibrated**. Say that missing an at-risk patient is the costly error, and it weights **recall**. And its most valuable question — *which columns would you actually know at prediction time?* — is how a lab value recorded only *after* diagnosis gets caught as leakage. (Some traps stay yours to catch: an impossible glucose reading of 0 is a missing value masquerading as data, and no automatic profile flags that.)
+Now take the same idea somewhere higher-stakes — a clinic predicting which patients are at risk for diabetes. Answer its questions honestly and the advice shifts with them: mark the setting as **regulated/high-stakes** and it requires checking performance *across subgroups* (does it do worse for an age band or sex?) and leaning on interpretable models you can defend. A risk score used for triage **must be calibrated**. Say that missing an at-risk patient is the costly error, and it weights **recall**. And its most valuable question — *which columns would you actually know at prediction time?* — is how a lab value recorded only *after* diagnosis gets caught as leakage. (Even the sneaky one gets flagged now: a continuous column spiking at an impossible value — like glucose readings of exactly 0 — is usually missing data in disguise, and the profiler raises a sentinel check asking you to confirm whether that value can physically exist.)
 
 In both cases the tool trained nothing. It told you which problem you're really solving, and where you were about to fool yourself.
 
@@ -116,7 +116,7 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 ![Test report: every dataset asserted against best practice — zero failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty-one datasets, seventy-seven assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+Twenty-one datasets, eighty-seven assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Your AI agent can consult it too (MCP)
 

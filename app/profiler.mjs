@@ -9,6 +9,13 @@ export const DATE_RE = /^(\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2})?|\d{1,2}\/\d{1,2}\/
 export const SMALL_N = 500;          // below this, prefer simple models + CV
 export const HIGH_CARD = 30;         // categorical levels above this = high cardinality
 export const ORDINAL_MAX = 15;       // numeric target with <= this many values is framing-ambiguous
+// Sentinel detection: a continuous-looking numeric column spiking at a placeholder value
+// (glucose = 0, income = -999) is usually missing data in disguise. Zero needs a higher
+// bar because legitimate zeros are common (counts, amounts).
+export const SENTINEL_VALUES = [-1, -9, -99, -999, -9999, 999, 9999];
+export const SENTINEL_ZERO_SHARE = 0.15;   // ≥ this share of exact 0s → flag (if high-card numeric)
+export const SENTINEL_SHARE = 0.05;        // ≥ this share of a classic sentinel → flag
+export const SENTINEL_MIN_CARD = 30;       // only continuous-looking columns; spares 0/1 flags & counts
 
 /* ---------- synthetic NYC taxi sample ---------- */
 export function makeSample() {
@@ -42,7 +49,8 @@ export function profile(rows) {
   const cols = Object.keys(rows[0] || {});
   const n = rows.length;
   const colInfo = cols.map((c) => {
-    let missing = 0, numeric = 0, dateHits = 0, totalLen = 0, nonEmpty = 0;
+    let missing = 0, numeric = 0, dateHits = 0, totalLen = 0, nonEmpty = 0, zeros = 0;
+    const sentinelHits = new Map(SENTINEL_VALUES.map((s) => [s, 0]));
     const uniq = new Set();
     for (const r of rows) {
       const v = r[c];
@@ -50,7 +58,12 @@ export function profile(rows) {
       nonEmpty++; uniq.add(String(v)); totalLen += String(v).length;
       // Strict numeric: parseFloat handles the leading numeric run; isFinite(v) coerces via Number(v)
       // and rejects trailing junk like "1.5abc", so both checks together mean "the whole value is a finite number".
-      if (!isNaN(parseFloat(v)) && isFinite(v)) numeric++;
+      if (!isNaN(parseFloat(v)) && isFinite(v)) {
+        numeric++;
+        const num = Number(v);
+        if (num === 0) zeros++;
+        else if (sentinelHits.has(num)) sentinelHits.set(num, sentinelHits.get(num) + 1);
+      }
       if (DATE_RE.test(String(v))) dateHits++;
     }
     const card = uniq.size;
@@ -62,7 +75,16 @@ export function profile(rows) {
     // so datetime columns are exempt from the uniqueness heuristic.
     const idLike = (card / Math.max(nonEmpty, 1) > 0.95 && n > 20 && dtype !== "numeric" && dtype !== "datetime")
       || (dtype === "numeric" && card / Math.max(nonEmpty, 1) > 0.98 && /id$|^id|_id/i.test(c));
-    return { name: c, dtype, missingPct: +(100 * missing / n).toFixed(1), cardinality: card, idLike };
+    // Sentinel spike: a continuous-looking numeric column concentrated at a placeholder
+    // value is usually missing data in disguise (glucose = 0). Advisory — the user confirms.
+    let sentinel = null;
+    if (dtype === "numeric" && card >= SENTINEL_MIN_CARD && nonEmpty) {
+      if (zeros / nonEmpty >= SENTINEL_ZERO_SHARE) sentinel = { value: 0, pct: +(100 * zeros / nonEmpty).toFixed(1) };
+      else for (const [s, hits] of sentinelHits) {
+        if (hits / nonEmpty >= SENTINEL_SHARE) { sentinel = { value: s, pct: +(100 * hits / nonEmpty).toFixed(1) }; break; }
+      }
+    }
+    return { name: c, dtype, missingPct: +(100 * missing / n).toFixed(1), cardinality: card, idLike, sentinel };
   });
 
   // modality hint — a *suggestion* the user confirms, never an automatic decision
