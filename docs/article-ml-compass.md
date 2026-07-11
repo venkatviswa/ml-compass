@@ -25,7 +25,7 @@ The mistakes that actually cost you are quieter:
 - **Data leakage.** You're predicting taxi fare and you leave `total_amount` and `tip_amount` in the features. The model is "98% accurate" because you handed it the answer — columns it will never have at prediction time.
 - **The wrong metric.** Your fraud data is 0.2% positive. A model that predicts "never fraud" is 99.8% accurate and useless. Accuracy was the wrong yardstick from the start.
 - **Dishonest validation.** The data is a time series, you shuffle it for cross-validation, and you quietly train on the future to predict the past. The score is a lie.
-- **Sloppy framing.** A 1–5 satisfaction score isn't obviously classification *or* regression — it's ordinal, and treating it as either loses information. That's a judgment call, not something to infer silently.
+- **Sloppy framing.** A 1–5 satisfaction score isn't obviously classification *or* regression — it's ordinal, and treating it as either loses information. That's a judgment call, not something to infer silently. (When you confirm that framing, ML Compass's call is regression that *respects the order*: an ordinal-logistic baseline, errors reported as MAE plus accuracy-within-1, and ordinal-aware models like ordered logistic before anything fancier.)
 
 None of these are model-selection problems. They're judgment problems, and they happen before you ever fit anything.
 
@@ -183,7 +183,7 @@ If it saves you one leaked column or one week of tuning the wrong problem, it ha
 ## Plain-English glossary for non-ML specialists
 
 - **Target** — the thing you're predicting (will this customer churn? is this patient at risk?).
-- **Classification vs. regression** — classification predicts a *category*; regression predicts a *number*. **Ordinal** is the in-between: ordered categories like a 1–5 rating, where the order matters.
+- **Classification vs. regression** — classification predicts a *category*; regression predicts a *number*. **Ordinal** is the in-between: ordered categories like a 1–5 rating, where the order matters — handled with order-aware models (e.g. ordered logistic) and judged by MAE plus accuracy-within-1, not plain accuracy.
 - **Baseline** — a deliberately dumb model (always guess the majority, or the average) you must beat. If your fancy model can't, something's wrong with the setup.
 - **Data leakage** — when a feature secretly contains the answer, or information you wouldn't have at prediction time. Makes a model look brilliant in testing and useless in the real world. The classic tell: a column filled in only *after* the event you're predicting.
 - **Class imbalance** — when one outcome is rare (6% churn, 0.2% fraud). It quietly breaks "accuracy" as a measure.
