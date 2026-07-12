@@ -53,6 +53,25 @@ console.log(`\n=== ML Compass · golden tests vs best practice (${DATASETS.lengt
   console.log("");
 }
 
+// Metric triggers — class-count-aware imbalance (binary keeps the 0.20 cutoff; a balanced
+// k-class dataset must not read as "imbalanced" just because 1/k < 0.2).
+{
+  const prof = { nRows: 5000, cols: [{ name: "f1", dtype: "numeric", cardinality: 100, missingPct: 0, idLike: false, sentinel: null }], modalityHint: "tabular" };
+  const metric = (task, modality = "tabular") =>
+    recommend({ modality, task, prof, answers: {}, target: "y", excludedCols: [] }).sections.find((s) => s.id === "metrics").decision;
+  const checks = [
+    ["balanced 10-class tabular is NOT 'imbalanced'", metric({ kind: "classification", nClasses: 10, imbalance: 0.10 }).includes("F1 / ROC-AUC")],
+    ["binary 19% minority still triggers PR-AUC", metric({ kind: "classification", nClasses: 2, imbalance: 0.19 }).includes("PR-AUC")],
+    ["imbalanced image classification avoids plain accuracy", metric({ kind: "classification", nClasses: 2, imbalance: 0.02 }, "image").includes("avoid plain accuracy")],
+  ];
+  console.log("• Metric triggers — class-count-aware imbalance");
+  for (const [label, ok] of checks) {
+    ok ? pass++ : (fail++, failed.push(`metrics :: ${label}`));
+    console.log(`   ${ok ? "✓" : "✗"} ${label}`);
+  }
+  console.log("");
+}
+
 // Explainer faithfulness guard — the single policy point behind invariant #1
 // ("rules decide; the LLM only rephrases"). Worst case must be the exact rules text.
 {

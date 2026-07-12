@@ -191,7 +191,7 @@ vs legitimate 0/1 flags), the shared question/framing helpers (`questionKeys`,
 single policy point behind "rules decide, the LLM only rephrases." The MCP server has
 its own end-to-end test over real JSON-RPC (`npm run test:mcp`).
 
-Current status: **21 datasets, 95 assertions, 0 failures.**
+Current status: **21 datasets, 101 assertions, 0 failures.**
 
 Datasets covered: Titanic, Iris, House Prices (Ames), Credit Card Fraud, Adult/Census
 Income, Telco Churn, Wine Quality, NYC Taxi, MNIST, SMS Spam, Pima Diabetes,

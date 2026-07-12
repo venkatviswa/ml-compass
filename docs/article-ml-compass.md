@@ -81,6 +81,12 @@ Four steps, about two minutes:
 3. **Questions** — it asks only what the data *can't* tell it (about five taps): time-dependence, whether you need probabilities, regulated/high-stakes, interpretability, error cost, and — the most valuable one — *which columns you'd actually know at prediction time*.
 4. **Bearing** — the rules engine emits the plan, each section with its decision, reason, and caveat.
 
+![How the deterministic engine chooses a model ladder: no target leads to clustering, dimensionality reduction or anomaly detection; text and images get their own ladders; tabular targets branch into regression, classification and ordinal ladders.](diagram-ladder.png)
+*ML Compass never declares a single winning algorithm. It chooses a defensible baseline and a sequence of model families to test — and separate rules then set the metric, validation, leakage controls, calibration, and governance checks.*
+
+![The rules that modify the path: small data, high-cardinality categoricals, class imbalance, time dependence, probability use, error costs, interpretability, regulation, and the leakage flags.](diagram-modifiers.png)
+*The ladder is the simple part — these overlays are where the bearing earns its keep.*
+
 ## What it looks like on a real dataset
 
 A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Salesforce's Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
@@ -116,7 +122,7 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 ![Test report: every dataset asserted against best practice — zero failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty-one datasets — ninety-five assertions across the dataset fixtures and the engine's unit checks — zero failures. And when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+Twenty-one datasets — one hundred and one assertions across the dataset fixtures and the engine's unit checks — zero failures. And when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Your AI agent can consult it too (MCP)
 

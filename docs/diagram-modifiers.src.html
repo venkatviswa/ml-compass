@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8">
+<style>
+body{margin:0;background:#fbfaf7;padding:34px 60px;font-family:Arial}
+h1{text-align:center;color:#15202b;font-size:34px;margin:4px 0 2px}
+p.sub{text-align:center;color:#445566;font-size:17px;margin:0 0 20px}
+table{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:2px solid #e3e1da;border-radius:14px;overflow:hidden;font-size:16.5px}
+th{background:#e9f1ff;color:#1f6feb;text-align:left;padding:12px 18px;font-size:15px;letter-spacing:.4px;text-transform:uppercase}
+td{padding:11px 18px;border-top:1px solid #e3e1da;color:#15202b;vertical-align:top}
+td.c{font-weight:bold;white-space:nowrap;width:36%}
+tr:nth-child(even) td{background:#fbfaf7}
+td .amber{color:#c77400;font-weight:bold}
+</style>
+<h1>The rules that modify the path</h1>
+<p class="sub">the model ladder is the simple part — these overlays are where the bearing earns its keep</p>
+<table>
+<tr><th>Detected condition</th><th>How the bearing changes</th></tr>
+<tr><td class="c">Fewer than 500 rows</td><td>simple, regularized models first; repeated CV; one Random Forest only if it shows a stable gain</td></tr>
+<tr><td class="c">High-cardinality categorical (&gt; 30 levels)</td><td>CatBoost, or leakage-safe target encoding fit inside CV folds</td></tr>
+<tr><td class="c">Minority class below the imbalance cutoff</td><td>PR-AUC primary · avoid accuracy · class weights + threshold tuning over blind resampling</td></tr>
+<tr><td class="c">Time-dependent data</td><td>shuffled CV replaced by time-based / walk-forward validation</td></tr>
+<tr><td class="c">Probabilities used for decisions</td><td>reliability curve, Brier score, Platt/isotonic calibration</td></tr>
+<tr><td class="c">False negatives / positives cost more</td><td>weight recall / precision accordingly; tune the decision threshold</td></tr>
+<tr><td class="c">Interpretability required</td><td>keep the linear baseline; explain trees with SHAP</td></tr>
+<tr><td class="c">Regulated or high-stakes</td><td>subgroup evaluation required; consider EBMs and monotonic constraints</td></tr>
+<tr><td class="c">Feature unavailable at prediction time</td><td><span class="amber">excluded from features and recorded in the leakage audit</span></td></tr>
+<tr><td class="c">Suspect post-outcome name (total, final, paid…)</td><td><span class="amber">flagged for confirmation — does it exist at prediction time?</span></td></tr>
+<tr><td class="c">ID-like column</td><td><span class="amber">dropped from features; check it doesn't encode the target</span></td></tr>
+<tr><td class="c">Sentinel spike (0 / −999 in a continuous column)</td><td><span class="amber">confirm the value is physically possible; else it's missing data in disguise</span></td></tr>
+</table>
+<script>document.body.dataset.done="1"</script>

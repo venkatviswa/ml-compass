@@ -24,7 +24,7 @@
 </style></head><body><div class="wrap">
   <h1>ML Compass — Test Report</h1>
   <p class="sub">Golden tests: engine decisions vs best practice across 21 famous datasets. Assertions check decisions (metric, PCA, leakage, validation), not prose — this report covers the dataset fixtures; the runner (npm test) additionally carries unit checks for the profiler heuristics, question/framing helpers, and the explainer faithfulness guard. Every dataset name and Source link opens the original dataset page.</p>
-  <div class="summary">✓ 21/21 datasets passed · 82 assertions</div>
+  <div class="summary">✓ 21/21 datasets passed · 85 assertions</div>
   <table>
     <thead><tr><th>S.No</th><th>Dataset</th><th>Source</th><th>Expected</th><th>Actual (engine decisions)</th><th>Comment</th></tr></thead>
     <tbody>
@@ -80,9 +80,9 @@
     <td class="sno">7</td>
     <td class="ds"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">Wine Quality</a><div class="note">framing resolved to ordinal</div></td>
     <td class="src"><a href="https://archive.ics.uci.edu/dataset/186/wine+quality" target="_blank" rel="noopener">archive.ics.uci.edu ↗</a></td>
-    <td class="exp">ordinal · accuracy-within-1 · Frank &amp; Hall · mord</td>
-    <td class="act">task: Supervised ordinal regression | metrics: MAE / RMSE (in target units) · R²</td>
-    <td class="res"><span class="badge pass">PASS 4/4</span></td>
+    <td class="exp">ordinal · accuracy-within-1 · Frank &amp; Hall · mord · Ordinal logistic · Frank–Hall</td>
+    <td class="act">task: Supervised ordinal regression | metrics: MAE / RMSE (in target units) · R² | models: Ordinal logistic → Frank–Hall cumulative binary classifiers → tree ensembles judged with ordinal metrics</td>
+    <td class="res"><span class="badge pass">PASS 6/6</span></td>
   </tr>
   <tr>
     <td class="sno">8</td>
@@ -96,9 +96,9 @@
     <td class="sno">9</td>
     <td class="ds"><a href="https://www.kaggle.com/datasets/hojjatk/mnist-dataset" target="_blank" rel="noopener">MNIST</a><div class="note">images</div></td>
     <td class="src"><a href="https://www.kaggle.com/datasets/hojjatk/mnist-dataset" target="_blank" rel="noopener">kaggle.com ↗</a></td>
-    <td class="exp">Image classification · CNN · augmentation</td>
-    <td class="act">task: Image classification | models: Transfer learning from a pretrained CNN → fine-tune (or a vision transformer) | fe: Data augmentation (flips, crops, normalization) instead of hand-built columns</td>
-    <td class="res"><span class="badge pass">PASS 3/3</span></td>
+    <td class="exp">Image classification · CNN · augmentation · Accuracy / macro-F1</td>
+    <td class="act">task: Image classification | models: Transfer learning from a pretrained CNN → fine-tune (or a vision transformer) | fe: Data augmentation (flips, crops, normalization) instead of hand-built columns | metrics: Accuracy / macro-F1 · top-k</td>
+    <td class="res"><span class="badge pass">PASS 4/4</span></td>
   </tr>
   <tr>
     <td class="sno">10</td>

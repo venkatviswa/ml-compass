@@ -5,9 +5,18 @@ import { SMALL_N, HIGH_CARD } from "./profiler.mjs";
 
 export const LEAKY_RE = /total|final|outcome|result|paid|settle|tip|duration|dropoff_time|completed/i;
 
+// Class-count-aware imbalance: binary keeps the 0.20 cutoff; with k classes the minority's
+// uniform share is 1/k, so "imbalanced" means under half of that (a balanced 10-class set
+// has minority 0.10 — that is not imbalance).
+function isImbalanced(task) {
+  if (task.imbalance === undefined) return false;
+  const uniform = task.nClasses ? 1 / task.nClasses : 0.5;
+  return task.imbalance < Math.min(0.2, uniform / 2);
+}
+
 // shared classification-metric rule (used by tabular + text branches)
 function clfMetrics(add, task, answers) {
-  const imb = task.imbalance !== undefined && task.imbalance < 0.2;
+  const imb = isImbalanced(task);
   add("metrics", "Evaluation metrics",
     imb ? "PR-AUC (primary) · F1 · recall at fixed precision — avoid accuracy"
         : "F1 / ROC-AUC · per-class precision & recall",
@@ -69,8 +78,12 @@ export function recommend(facts) {
       "For images, augmentation replaces tabular feature engineering.");
     add("pca", "PCA decision", "Not used as preprocessing",
       "Conv layers learn the representation; PCA on raw pixels rarely helps.", null, "neu");
-    add("metrics", "Evaluation metrics", isClf ? "Accuracy / macro-F1 · top-k" : "MAE / RMSE",
-      "Standard image metrics; watch class balance for classification.");
+    const imgImb = isClf && isImbalanced(task);
+    add("metrics", "Evaluation metrics",
+      isClf ? (imgImb ? "Macro-F1 · per-class PR-AUC — avoid plain accuracy" : "Accuracy / macro-F1 · top-k") : "MAE / RMSE",
+      imgImb ? `Minority class is ${(task.imbalance * 100).toFixed(1)}% — plain accuracy would look great while missing it.`
+             : "Standard image metrics; watch class balance for classification.",
+      null, imgImb ? "amber" : "sup");
     add("validation", "Validation strategy", "Hold-out or k-fold with no image/subject overlap across splits",
       "Make sure the same image or source isn't in both train and test.", null, "sup");
     add("leakage", "Leakage check", "1 flag", "Ensure no duplicate or same-source images span train and test.", null, "amber");
@@ -123,7 +136,13 @@ export function recommend(facts) {
   if (highCard.length) famCaveat = `High-cardinality categoricals (${highCard.join(", ")}): CatBoost handles them natively, otherwise leakage-safe target encoding fit inside CV folds.`;
   if (answers.interpretability === "must") famCaveat = (famCaveat ? famCaveat + " " : "") + "Interpretability required: keep the linear model in the comparison and explain trees with SHAP.";
 
-  if (smallN) {
+  if (kind === "ordinal") {
+    add("models", "Model families",
+      "Ordinal logistic → Frank–Hall cumulative binary classifiers → tree ensembles judged with ordinal metrics",
+      "The target's order is signal: order-aware models use it directly; tree ensembles can follow once the ordinal baselines set the bar.",
+      [smallN ? `Small dataset (~${prof.nRows} rows): favour the simple, well-regularized end of this ladder.` : null, famCaveat]
+        .filter(Boolean).join(" ") || null);
+  } else if (smallN) {
     add("models", "Model families",
       "Simple model + cross-validation first; add a single Random Forest only if CV shows a real gain",
       `Small dataset (~${prof.nRows} rows): complex models overfit and CV estimates are noisy — favour simple, well-regularized models.`,

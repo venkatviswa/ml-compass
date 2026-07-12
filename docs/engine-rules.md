@@ -44,14 +44,34 @@ All tunable constants live in one place (`app/profiler.mjs`), so the behavior is
 | `SMALL_N` | **500** | below this many rows → the "small data" path (simpler models, repeated CV) |
 | `HIGH_CARD` | **30** | a categorical with more levels than this → "high-cardinality" |
 | `ORDINAL_MAX` | **15** | a *numeric* target with ≤ this many distinct values → **framing-ambiguous** (asks you) |
-| imbalance cutoff | **0.20** | minority class < 20% → imbalanced-aware metrics |
+| imbalance cutoff | **min(0.20, 1/2k)** | binary keeps the 20% cutoff; with k classes the minority is compared to *half its uniform share* — a balanced 10-class set (minority ≈ 10%) is **not** imbalanced |
 | `SENTINEL_ZERO_SHARE` | **0.15** | share of exact 0s in a continuous column (≥ `SENTINEL_MIN_CARD` distinct values) → sentinel flag |
 | `SENTINEL_SHARE` | **0.05** | share of a classic placeholder (-1, ±999, ±9999…) → sentinel flag |
 | `SENTINEL_MIN_CARD` | **30** | sentinel checks only apply to continuous-looking columns — spares 0/1 flags and counts |
 
 ---
 
-## 3. Which branch runs
+## 3. How the engine is shaped — two layers
+
+The engine is not one big algorithm tree. A **primary route** picks the task, baseline,
+and model ladder; **independent overlays** then modify metrics, validation, calibration,
+feature engineering, and leakage advice:
+
+```mermaid
+flowchart TD
+    D["CSV rows"] --> P["Profiler"]
+    P --> F["Objective facts<br/>types · cardinality · missingness<br/>imbalance · IDs · sentinels"]
+    F --> Q["Context questions<br/>time · probabilities · error cost<br/>interpretability · regulation"]
+    Q --> R["Deterministic rules engine"]
+    R --> B["Base route<br/>task · baseline · model ladder"]
+    R --> E["Evaluation route<br/>metric · validation · calibration"]
+    R --> G["Data-risk route<br/>leakage · feature work · fairness"]
+    B --> O["Structured bearing"]
+    E --> O
+    G --> O
+```
+
+### The primary route
 
 ```
 no target column ............ → Unsupervised
@@ -60,11 +80,51 @@ modality = text ............. → Text
 otherwise ................... → Tabular
 ```
 
+```mermaid
+flowchart TD
+    A["Dataset profile<br/>+ business context"] --> T{"Target selected?"}
+    T -->|No| U{"Analysis goal?"}
+    U -->|Group records| UC["Clustering: KMeans first;<br/>DBSCAN/HDBSCAN, GMM, hierarchical as needed"]
+    U -->|Compress / visualize| UR["PCA for compression;<br/>UMAP / t-SNE for visualization"]
+    U -->|Find rare records| UA["Isolation Forest first;<br/>One-Class SVM or autoencoder as needed"]
+    T -->|Yes| M{"Data modality?"}
+    M -->|Text| TX["TF-IDF + Logistic Regression / Naive Bayes<br/>→ transformer if the baseline falls short"]
+    M -->|Image| IM["Small CNN sanity check<br/>→ pretrained CNN / vision transformer"]
+    M -->|Tabular| K{"Target type?"}
+    K -->|Continuous| RG["Mean baseline → Linear Regression<br/>→ Random Forest → LightGBM / XGBoost"]
+    K -->|Categorical| CL["Majority baseline → Logistic Regression<br/>→ Random Forest → boosting (CatBoost if high-card)"]
+    K -->|Ordered values| OR["Mean baseline → ordinal logistic<br/>→ Frank–Hall cumulative classifiers → trees w/ ordinal metrics"]
+```
+
+The engine never declares a single winning algorithm — it recommends a **model ladder**:
+a defensible baseline and a sequence of progressively stronger families to test.
+
 ---
 
 ## 4. The rules, section by section
 
 Each section emits a **decision**, a **reason**, and sometimes a **caveat**.
+
+### The modifiers at a glance
+
+The primary route above is deliberately simple — most of the engine's value is in the
+overlays that *modify* it:
+
+| Detected condition | How the bearing changes |
+|---|---|
+| Fewer than 500 rows | simple, regularized models first; repeated CV; one Random Forest only if it shows a stable gain |
+| High-cardinality categorical (> 30 levels) | CatBoost, or leakage-safe target encoding fit inside CV folds |
+| Minority class below the imbalance cutoff | PR-AUC primary; avoid accuracy; class weights + threshold tuning over blind resampling |
+| Time-dependent data | shuffled CV replaced by time-based / walk-forward validation |
+| Probabilities used for decisions | reliability curve, Brier score, Platt/isotonic calibration |
+| False negatives cost more | weight recall, tune the threshold |
+| False positives cost more | weight precision, tune the threshold |
+| Interpretability required | keep the linear baseline; explain trees with SHAP |
+| Regulated / high-stakes | subgroup evaluation required; consider EBMs and monotonic constraints |
+| Feature unavailable at prediction time | excluded from features and recorded in the leakage audit |
+| Suspect post-outcome name (`total`, `final`, `paid`, …) | flagged for confirmation |
+| ID-like column | dropped from features; check it doesn't encode the target |
+| Sentinel spike (0 / −999 in a continuous column) | confirm the value is physically possible; else treat as missing data in disguise |
 
 ### Task detection
 | Condition | Decision |
@@ -92,6 +152,7 @@ Each section emits a **decision**, a **reason**, and sometimes a **caveat**.
 | tabular, normal size | **Random Forest** (bagging) → **LightGBM / XGBoost** (boosting) |
 | tabular, **high-cardinality** present | Random Forest → **CatBoost / LightGBM** (CatBoost handles categories natively) |
 | tabular, **small n** (< `SMALL_N`) | simple model + CV first; add a *single* Random Forest only if CV shows a real gain |
+| tabular, **ordinal target** | **Ordinal logistic** → **Frank–Hall** cumulative binary classifiers → tree ensembles judged with ordinal metrics |
 | text | TF-IDF + linear / Naive Bayes (a **linear SVM** is strong on small, high-dim text) → embeddings / fine-tuned **transformer** if the baseline falls short |
 | image | **transfer learning** from a pretrained **CNN** → fine-tune (or a **Vision Transformer**) |
 
@@ -102,8 +163,10 @@ Caveats added when relevant:
 ### Evaluation metrics
 | Condition | Metric |
 |-----------|--------|
-| classification, minority ≥ 20% | F1 / ROC-AUC · per-class precision & recall |
-| classification, minority **< 20%** | **PR-AUC** (primary) · F1 · recall at fixed precision — *avoid accuracy* |
+| classification, minority ≥ cutoff | F1 / ROC-AUC · per-class precision & recall |
+| classification, minority **< cutoff** | **PR-AUC** (primary) · F1 · recall at fixed precision — *avoid accuracy* |
+| *(the cutoff)* | min(20%, half the uniform share 1/k) — binary keeps 20%; balanced k-class data is never "imbalanced" |
+| image classification, imbalanced | **Macro-F1 · per-class PR-AUC — avoid plain accuracy** |
 | regression | MAE / RMSE (in target units) · R² |
 | image classification | Accuracy / macro-F1 · top-k |
 | `errorCost = fn` | weight **recall**, tune the threshold |
@@ -186,7 +249,7 @@ The engine also recommends a few practical algorithms **beyond** the 18-entry gu
 These rules aren't aspirational — they're **regression-tested**. The golden suite
 (`app/rules.test.mjs`, `app/fixtures.mjs`) encodes **21 famous datasets** and asserts
 the engine's *decisions* (task, metric, PCA, validation, leakage) against best
-practice — **95 assertions, 0 failures**. Change a rule and the suite tells you
+practice — **101 assertions, 0 failures**. Change a rule and the suite tells you
 immediately if it broke an established call.
 
 ```bash

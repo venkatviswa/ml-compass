@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8">
+<style>body{margin:0;background:#fbfaf7;padding:30px;font-family:Arial}h1{text-align:center;color:#15202b;font-size:34px;margin:6px 0 2px}p{text-align:center;color:#445566;font-size:17px;margin:0 0 14px}#d{display:flex;justify-content:center}</style>
+<h1>How the deterministic engine chooses a model ladder</h1>
+<p>never one winning algorithm — a defensible baseline and a sequence of families to test</p>
+<div id="d"><pre class="mermaid">
+flowchart TD
+    A["Dataset profile<br/>+ business context"] --> T{"Target<br/>selected?"}
+    T -->|No| U{"Analysis goal?"}
+    U -->|group records| UC["<b>Clustering</b><br/>KMeans first; DBSCAN/HDBSCAN,<br/>GMM, hierarchical as needed"]
+    U -->|compress / visualize| UR["<b>Dimensionality</b><br/>PCA to compress;<br/>UMAP / t-SNE to visualize"]
+    U -->|find rare records| UA["<b>Anomaly detection</b><br/>Isolation Forest first; One-Class SVM<br/>or autoencoder as needed"]
+    T -->|Yes| M{"Data<br/>modality?"}
+    M -->|text| TX["<b>Text ladder</b><br/>TF-IDF + Logistic / Naive Bayes<br/>→ transformer if the baseline falls short"]
+    M -->|images| IM["<b>Image ladder</b><br/>small CNN sanity check<br/>→ pretrained CNN / vision transformer"]
+    M -->|tabular| K{"Target<br/>type?"}
+    K -->|continuous| RG["<b>Regression ladder</b><br/>mean baseline → Linear Regression<br/>→ Random Forest → LightGBM / XGBoost"]
+    K -->|categorical| CL["<b>Classification ladder</b><br/>majority baseline → Logistic Regression<br/>→ Random Forest → boosting (CatBoost if high-card)"]
+    K -->|ordered values| OR["<b>Ordinal ladder</b><br/>mean baseline → ordinal logistic<br/>→ Frank–Hall cumulative classifiers"]
+</pre></div>
+<script type="module">
+import mermaid from "./node_modules/mermaid/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, theme: "base", themeVariables: {
+  primaryColor: "#e9f1ff", primaryBorderColor: "#1f6feb", primaryTextColor: "#15202b",
+  lineColor: "#445566", fontSize: "16px", fontFamily: "Arial" }, flowchart: { htmlLabels: true, curve: "basis" } });
+try {
+  await mermaid.run({ querySelector: ".mermaid" });
+  const svg = document.querySelector(".mermaid svg");
+  svg.style.maxWidth = "none"; svg.style.width = "2200px"; svg.style.height = "auto";
+  document.body.dataset.done = "1";
+}
+catch (e) { document.body.dataset.done = "ERR:" + e.message; }
+</script>

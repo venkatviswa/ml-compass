@@ -60,7 +60,7 @@ const DATASETS = [
     facts: { target: "quality", task: { kind: "ordinal", targetType: "ordinal", nClasses: 6, imbalance: 0.04 },
       prof: prof([col("alcohol", "numeric", 65), col("pH", "numeric", 89), col("citric_acid", "numeric", 80), col("sulphates", "numeric", 96)], 1599),
       answers: { timeDependent: false, needsProbs: false, regulated: false, interpretability: "nice", errorCost: "eq" }, excludedCols: [] },
-    expect: [["task", "ordinal"], ["metrics", "accuracy-within-1"], ["metrics", "Frank & Hall"], ["metrics", "mord"]],
+    expect: [["task", "ordinal"], ["metrics", "accuracy-within-1"], ["metrics", "Frank & Hall"], ["metrics", "mord"], ["models", "Ordinal logistic"], ["models", "Frank–Hall"]],
   },
   {
     name: "NYC Taxi — regression, time-dependent, leakage",
@@ -76,7 +76,7 @@ const DATASETS = [
     facts: { modality: "image", target: "label", task: { kind: "classification", targetType: "multiclass", nClasses: 10, imbalance: 0.09 },
       prof: prof(Array.from({ length: 50 }, (_, i) => col("pixel" + i, "numeric", 256)), 60000),
       answers: { timeDependent: false, needsProbs: false, regulated: false, interpretability: "no", errorCost: "eq" }, excludedCols: [] },
-    expect: [["task", "Image classification"], ["models", "CNN"], ["fe", "augmentation"]],
+    expect: [["task", "Image classification"], ["models", "CNN"], ["fe", "augmentation"], ["metrics", "Accuracy / macro-F1"]],
   },
   {
     name: "SMS Spam — text, imbalanced",
