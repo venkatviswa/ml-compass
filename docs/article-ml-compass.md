@@ -57,7 +57,7 @@ Three things make it different.
 
 **1. Opinionated and reasoned — not a menu.** It doesn't hand you twelve options and wish you luck. It makes a call and tells you *why*, with the caveat that would change its mind. You don't just get an answer; you get reasoning you can carry to the next dataset.
 
-**2. Rules decide; the model only explains.** This is the core, and the moat. The recommendation comes from a deterministic rules engine over your dataset's profile and your answers — *not* a language model's guess. An LLM is optional and does one job: rephrase the output into friendlier prose. It can never add, drop, or change a decision — the decision and its caveats are shown verbatim from the rules engine, and the explainer only rewords the *rationale*; if its wording drifts from the facts, the app discards it and shows the exact rules text instead. That's the opposite of "ask ChatGPT which model to use," which gives a confident answer with no way to know if it's right. Deterministic means **auditable, reproducible, and testable**.
+**2. Rules decide; the model only explains.** This is the architectural core. The recommendation comes from a deterministic rules engine over your dataset's profile and your answers — *not* a language model's guess. An LLM is optional and does one job: rephrase the output into friendlier prose. It can never add, drop, or change a decision — the decision and its caveats are shown verbatim from the rules engine, and the explainer only rewords the *rationale*; if its wording drifts from the facts, the app discards it and shows the exact rules text instead. That's the opposite of "ask ChatGPT which model to use," which gives a confident answer with no way to know if it's right. Deterministic means **auditable, reproducible, and testable**.
 
 ![How ML Compass works: the dataset and your answers feed a deterministic rules engine that produces the bearing; an optional language model only rephrases it.](diagram-architecture.png)
 *The rules engine makes every call. The language model, if enabled, only rewords the output.*
@@ -91,7 +91,7 @@ Four steps, about two minutes:
 
 A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Salesforce's Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
 
-The whole exchange is a handful of taps. Its questions, verbatim, and the answers a churn project gives:
+The whole exchange is a handful of taps. Its most consequential questions, and the answers this churn project gives:
 
 > **Which columns would you actually know at prediction time?** → everything except `cancellation_reason`, `final_invoice`, and `contract_end_date` — those are created only after the churn
 > **Is the data time-ordered / do patterns drift over time?** → yes
@@ -122,7 +122,7 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 ![Test report: every dataset asserted against best practice — zero failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty-one datasets — one hundred and one assertions across the dataset fixtures and the engine's unit checks — zero failures. And when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+The suite covers 21 public datasets plus unit checks for profiling, question routing, metric triggers, and the LLM-faithfulness safeguards: 101 assertions, zero failures. And when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Your AI agent can consult it too (MCP)
 
@@ -191,7 +191,7 @@ If it saves you one leaked column or one week of tuning the wrong problem, it ha
 ## Plain-English glossary for non-ML specialists
 
 - **Target** — the thing you're predicting (will this customer churn? is this patient at risk?).
-- **Classification vs. regression** — classification predicts a *category*; regression predicts a *number*. **Ordinal** is the in-between: ordered categories like a 1–5 rating, where the order matters — handled with order-aware models (e.g. ordered logistic) and judged by MAE plus accuracy-within-1, not plain accuracy.
+- **Classification vs. regression** — classification predicts a *category*; regression predicts a *number*. **Ordinal data** consists of ordered categories such as a 1–5 rating: it can be modeled several ways, but order-aware models (e.g. ordered logistic) preserve the ranking without assuming every adjacent gap is identical — judged by MAE plus accuracy-within-1, not plain accuracy.
 - **Baseline** — a deliberately dumb model (always guess the majority, or the average) you must beat. If your fancy model can't, something's wrong with the setup.
 - **Data leakage** — when a feature secretly contains the answer, or information you wouldn't have at prediction time. Makes a model look brilliant in testing and useless in the real world. The classic tell: a column filled in only *after* the event you're predicting.
 - **Class imbalance** — when one outcome is rare (6% churn, 0.2% fraud). It quietly breaks "accuracy" as a measure.
@@ -199,7 +199,7 @@ If it saves you one leaked column or one week of tuning the wrong problem, it ha
 - **PR-AUC / ROC-AUC / F1** — single-number scores summarizing precision and recall. **PR-AUC** is often more informative for rare events; ROC-AUC and F1 can still be useful, but they answer different questions.
 - **Cross-validation** — instead of one train/test split, rotate through several so the score isn't a fluke of how you split.
 - **Time-based split (walk-forward)** — for data that changes over time, train on the past and test on the future, never the reverse. Shuffling time is a subtle leak.
-- **Calibration** — making the predicted probability *mean* something: among cases called "70%," about 70% should actually happen. Essential when you rank or triage by the score.
+- **Calibration** — making the predicted probability *mean* something: among cases called "70%," about 70% should actually happen. Important when predicted probabilities drive triage thresholds, resource allocation, or statements such as "70% risk."
 - **Feature engineering** — turning raw columns into more useful signals (a timestamp → hour-of-day, day-of-week; two columns → their ratio).
 - **PCA** — compresses many correlated columns into fewer. Useful for some models, usually unnecessary for tree ensembles.
 - **SHAP / interpretability** — methods that explain *why* a model made a prediction — important when a human or regulator must trust it.

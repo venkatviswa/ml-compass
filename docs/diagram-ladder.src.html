@@ -6,7 +6,7 @@
 flowchart TD
     A["Dataset profile<br/>+ business context"] --> T{"Target<br/>selected?"}
     T -->|No| U{"Analysis goal?"}
-    U -->|group records| UC["<b>Clustering</b><br/>KMeans first; DBSCAN/HDBSCAN,<br/>GMM, hierarchical as needed"]
+    U -->|group records| UC["<b>Clustering</b><br/>KMeans first;<br/>DBSCAN/HDBSCAN for irregular groups"]
     U -->|compress / visualize| UR["<b>Dimensionality</b><br/>PCA to compress;<br/>UMAP / t-SNE to visualize"]
     U -->|find rare records| UA["<b>Anomaly detection</b><br/>Isolation Forest first; One-Class SVM<br/>or autoencoder as needed"]
     T -->|Yes| M{"Data<br/>modality?"}
