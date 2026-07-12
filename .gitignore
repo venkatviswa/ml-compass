@@ -9,3 +9,6 @@
 # unanchored: dependencies of nested packages (mcp-worker/)
 node_modules/
 .wrangler/
+
+# generated at repo root only if report.mjs is run from an old checkout
+/test-report.*

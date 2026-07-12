@@ -2,9 +2,9 @@
 
 *The worst ML failures usually aren't bad algorithms. They're leaked columns, the wrong success metric, and dishonest validation — decisions made in the first hour with a dataset, before a single model is trained. I built ML Compass as a deterministic second opinion for that hour.*
 
-> **TL;DR** — The expensive ML mistakes happen *before* you train a model, and the no-code platforms rarely force the questions that catch them. ML Compass profiles your dataset, asks the few things the data can't answer, and returns a reasoned plan — task, metric, validation, and a leakage audit — with a *why* behind every call. Deterministic (rules decide, the LLM only rephrases), private (runs in your browser), open source, and regression-tested against 21 datasets.
+> **TL;DR** — Many expensive ML failures begin before training: leaked features, misleading metrics, invalid validation. ML Compass profiles a dataset, asks what the data cannot answer, and produces a deterministic plan — task framing, metrics, validation, and a leakage audit — with a *why* behind every call. The rules make the decisions; an optional LLM only explains them. It runs locally, is open source, and is regression-tested across 21 datasets.
 
-I built a small working prototype here: **[ML Compass](https://ml-compass.pages.dev)**. It follows a simple flow — frame the business decision, profile the dataset, answer a few context questions, then receive a deterministic *bearing* with reasons and caveats.
+I built a small working prototype here: **[ML Compass](https://ml-compass.pages.dev)** (source and tests: [GitHub](https://github.com/venkatviswa/ml-compass)). It follows a simple flow — frame the business decision, profile the dataset, answer a few context questions, then receive a deterministic *bearing* with reasons and caveats.
 
 ---
 
@@ -25,7 +25,7 @@ The mistakes that actually cost you are quieter:
 - **Data leakage.** You're predicting taxi fare and you leave `total_amount` and `tip_amount` in the features. The model is "98% accurate" because you handed it the answer — columns it will never have at prediction time.
 - **The wrong metric.** Your fraud data is 0.2% positive. A model that predicts "never fraud" is 99.8% accurate and useless. Accuracy was the wrong yardstick from the start.
 - **Dishonest validation.** The data is a time series, you shuffle it for cross-validation, and you quietly train on the future to predict the past. The score is a lie.
-- **Sloppy framing.** A 1–5 satisfaction score isn't obviously classification *or* regression — it's ordinal, and treating it as either loses information. That's a judgment call, not something to infer silently. (When you confirm that framing, ML Compass's call is regression that *respects the order*: an ordinal-logistic baseline, errors reported as MAE plus accuracy-within-1, and ordinal-aware models like ordered logistic before anything fancier.)
+- **Sloppy framing.** A 1–5 satisfaction score is *ordinal data*, but the modeling formulation is still a judgment call: plain multiclass classification ignores the ordering, ordinary regression treats the gaps between scores as real numeric distances, and an ordinal formulation respects the structure. That call shouldn't be inferred silently. (Confirm the ordinal framing and ML Compass recommends the concrete path: an ordinal-logistic baseline, errors reported as MAE plus accuracy-within-1, and order-aware models before anything fancier.)
 
 None of these are model-selection problems. They're judgment problems, and they happen before you ever fit anything.
 
@@ -38,11 +38,11 @@ None of these are model-selection problems. They're judgment problems, and they 
 
 Here's the part I didn't expect to care about until I lived it.
 
-The platforms most teams now use have made *training* a model dramatically easier. In Salesforce, **Model Builder** — the point-and-click predictive tool in the Agentforce / Data 360 stack (formerly Einstein Studio) — lets an admin build a model without code. **Snowflake Cortex** and Snowflake ML train classification or forecasting models from a line of SQL. **Databricks AutoML** generates baseline models and notebooks automatically, and **Genie** answers data questions in plain language.
+Many modern ML platforms have made *training* a model dramatically easier. In Salesforce, **Model Builder** — the point-and-click predictive tool in the Agentforce / Data 360 stack (formerly Einstein Studio) — lets an admin build a model without code. **Snowflake's ML capabilities** (Cortex functions, Snowflake ML) let teams build classification and forecasting workflows from SQL without the data leaving the platform. **Databricks AutoML** generates baseline models and notebooks automatically, and **Genie** answers data questions in plain language.
 
 This is genuinely great — and ML Compass isn't a competitor to any of it. But notice what got automated and what didn't. These tools help enormously with the *mechanics* of training. What they rarely do is force the uncomfortable framing questions: *will this feature actually exist at prediction time? is accuracy meaningful when one class is rare? should this be split by time?* It's still easy to optimize for accuracy on a 2%-positive target and get a beautiful, misleading number. Those decisions are still on you, and they're where projects quietly fail.
 
-Put crisply: **Salesforce's Agentforce Model Builder trains models with clicks. Snowflake Cortex trains them from SQL, inside the warehouse. Databricks AutoML automates the experimentation. ML Compass decides what should be trained — and how it should be judged — before any of them run.**
+Put crisply: **Salesforce's Agentforce Model Builder trains models with clicks. Snowflake supports ML workflows from SQL inside the data platform. Databricks AutoML automates the experimentation. ML Compass recommends what to train, how to validate it, and how to judge it — before any of them run.**
 
 So if you're a Salesforce architect who can stand up a Model Builder prediction in your sleep but isn't steeped in *why* accuracy is the wrong success metric for a rare event — that gap is exactly the risk. ML Compass is meant to be the **pre-flight checklist you run before you press their Train button**: a reasoned second opinion, not another model.
 
@@ -85,9 +85,9 @@ Four steps, about two minutes:
 
 A SaaS company hands you a customer export and asks the classic question: predict who will cancel so the retention team can step in. Forty-odd columns and a tidy `churn` flag. The obvious move is to load it into Salesforce's Model Builder (or Databricks AutoML), set the goal to `churn`, optimize accuracy, and ship.
 
-The whole exchange is about five taps. Its questions, verbatim, and the answers a churn project gives:
+The whole exchange is a handful of taps. Its questions, verbatim, and the answers a churn project gives:
 
-> **Which columns would you actually know at prediction time?** → not `cancellation_reason`, `final_invoice`, `contract_end_date` — those only exist after the churn
+> **Which columns would you actually know at prediction time?** → everything except `cancellation_reason`, `final_invoice`, and `contract_end_date` — those are created only after the churn
 > **Is the data time-ordered / do patterns drift over time?** → yes
 > **Will the outputs be used as probabilities or scores (ranking, triage)?** → yes — retention works a ranked list
 > **Which error costs more — a false negative, a false positive, or equal?** → a missed churner
@@ -101,12 +101,12 @@ Here's the bearing ML Compass returns from those answers:
 **Your next step.** The plan drops straight into whatever you build with:
 
 1. **Drop the leaks** — remove `customer_id` and the three after-the-fact columns first.
-2. **Set the right metric** — PR-AUC or recall-at-precision, not accuracy (the "goal" you pick in Salesforce's Model Builder; the scoring function in a notebook).
+2. **Set the right metric** — PR-AUC or recall at a chosen precision, not accuracy: the evaluation criterion you carry into Model Builder's setup, or configure directly as the scoring function in a notebook.
 3. **Split by time** — train on earlier customers, validate on later ones. No random shuffle.
 4. **Start simple** — logistic baseline, then gradient boosting, and keep the complex model only if it clears the baseline by a real margin.
-5. **Calibrate before you rank** — so the retention team can trust a "70% risk."
+5. **Check calibration before presenting scores as probabilities** — so a displayed "70% risk" has empirical meaning to the retention team.
 
-Now take the same idea somewhere higher-stakes — a clinic predicting which patients are at risk for diabetes. Answer its questions honestly and the advice shifts with them: mark the setting as **regulated/high-stakes** and it requires checking performance *across subgroups* (does it do worse for an age band or sex?) and leaning on interpretable models you can defend. A risk score used for triage **must be calibrated**. Say that missing an at-risk patient is the costly error, and it weights **recall**. And its most valuable question — *which columns would you actually know at prediction time?* — is how a lab value recorded only *after* diagnosis gets caught as leakage. (Even the sneaky one gets flagged now: a continuous column spiking at an impossible value — like glucose readings of exactly 0 — is usually missing data in disguise, and the profiler raises a sentinel check asking you to confirm whether that value can physically exist.)
+Now take the same idea somewhere higher-stakes — a clinic predicting which patients are at risk for diabetes. Answer its questions honestly and the advice shifts with them: mark the setting as **regulated/high-stakes** and it requires checking performance *across subgroups* (does performance differ materially across age bands or sex?) and leaning on interpretable models you can defend. A risk score *interpreted as a probability* for triage should be **evaluated for calibration** — and calibrated when it drifts. Say that missing an at-risk patient is the costly error, and it weights **recall**. And its most valuable question — *which columns would you actually know at prediction time?* — is how a lab value recorded only *after* diagnosis gets caught as leakage. (Even the sneaky one gets flagged now: a continuous column spiking at an impossible value — like glucose readings of exactly 0 — is usually missing data in disguise, and the profiler raises a sentinel check asking you to confirm whether that value can physically exist.)
 
 In both cases the tool trained nothing. It told you which problem you're really solving, and where you were about to fool yourself.
 
@@ -116,14 +116,14 @@ Because the engine is deterministic, I can do something you can't do with an LLM
 
 ![Test report: every dataset asserted against best practice — zero failures, each with a clickable source link.](screenshot-test-report.png)
 
-Twenty-one datasets, ninety-five assertions, zero failures — and when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
+Twenty-one datasets — ninety-five assertions across the dataset fixtures and the engine's unit checks — zero failures. And when I add a rule, the suite tells me immediately if I broke an old one. The point isn't that the rules are perfect; it's that they're **explicit enough to challenge, improve, and regression-test**. Disagree with a call? It's a line of code and a test, not a vibe. That's the whole philosophy in one artifact: if a recommendation can't be tested, I don't trust it — and neither should you.
 
 ## Your AI agent can consult it too (MCP)
 
 There's an irony in this article: it argues you shouldn't ask a chatbot which model to use — yet the "person" most likely to be handed your CSV next *is* an AI agent. So the newest piece of ML Compass makes peace between the two. The engine is exposed over the **Model Context Protocol (MCP)** — the open standard that lets agents like Claude call tools — so the agent doesn't guess anymore; **it asks the rules engine.**
 
 ![ML Compass over MCP: you chat with the agent; the local MCP server and the deterministic rules engine run on your machine; raw data never leaves it.](diagram-mcp.png)
-*The agent narrates; the rules decide. The local server makes zero network calls — your CSV never leaves your machine.*
+*The agent narrates; the rules decide. The server itself makes no network calls and never uploads the CSV — the agent receives only derived facts and the bearing text.*
 
 The flow mirrors the app. The agent profiles your CSV, relays the few questions the data can't answer (you answer right in the chat), and receives the same bearing — decision, reason, caveat per section — as structured data it then walks you through. Here's what the agent actually receives — real output from the Kaggle Titanic set, abridged:
 
@@ -152,7 +152,7 @@ The flow mirrors the app. The agent profiles your CSV, relays the few questions 
 
 That `note` instructing the agent to quote decisions verbatim isn't decoration — in live testing it earned its keep, catching a summarizer that had quietly swapped "ROC-AUC" for "accuracy." And if the agent skips a relevant question, the response comes back with an `unansweredQuestions` field naming exactly what was assumed — silent defaults aren't a thing.
 
-The part I care most about: the **local server keeps the privacy story fully intact**. It runs on your machine, reads the CSV from your own disk, and makes zero network calls — there is no LLM inside it at all. The only model in the loop is the agent you're already talking to; every *decision* comes from the deterministic engine. Unplug the internet and the bearing is byte-for-byte identical. That's the "rules decide, models explain" claim in its purest form — now in a shape your agent can use. (There's also a hosted variant for agents that already hold a dataset's computed profile — it accepts the facts only, never raw rows.)
+The part I care most about: the **local server keeps the privacy story fully intact**. The server itself makes no network calls and never uploads the CSV — it reads from your own disk, and there is no LLM inside it at all. (Whether the *agent* you attach it to is local or cloud-hosted depends on your client — the server hands it derived facts and the bearing text, never rows.) Every *decision* comes from the deterministic engine: with the same inputs and engine version, the bearing is identical even fully offline. That's the "rules decide, models explain" claim in its purest form — now in a shape your agent can use. (There's also a hosted variant for agents that already hold a dataset's computed profile — it accepts the facts only, never raw rows.)
 
 Setup takes about two minutes — the step-by-step guide is in the repo: **[docs/mcp-setup.md](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**.
 
@@ -177,6 +177,8 @@ ML Compass is open source and free. The decision engine runs entirely in your br
 AutoML made training easier. ML Compass is my attempt to make the step *before* training harder to get wrong.
 
 If it saves you one leaked column or one week of tuning the wrong problem, it has done its job. And if you disagree with a call it makes — that's the conversation I'm most interested in. Every rule is a line of code with a test on it, not a vibe: open an issue and tell me where it's wrong.
+
+*Disclosure: I built ML Compass. The examples in this article are demonstrations of its output on public datasets, not benchmark claims.*
 
 ---
 
