@@ -160,7 +160,37 @@ That `note` instructing the agent to quote decisions verbatim isn't decoration �
 
 The part I care most about: the **local server keeps the privacy story fully intact**. The server itself makes no network calls and never uploads the CSV — it reads from your own disk, and there is no LLM inside it at all. (Whether the *agent* you attach it to is local or cloud-hosted depends on your client — the server hands it derived facts and the bearing text, never rows.) Every *decision* comes from the deterministic engine: with the same inputs and engine version, the bearing is identical even fully offline. That's the "rules decide, models explain" claim in its purest form — now in a shape your agent can use. (There's also a hosted variant for agents that already hold a dataset's computed profile — it accepts the facts only, never raw rows.)
 
-Setup takes about two minutes — the step-by-step guide is in the repo: **[docs/mcp-setup.md](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**.
+**Set it up in two minutes** (you'll need Node.js 20+ — [nodejs.org](https://nodejs.org)):
+
+```bash
+git clone https://github.com/venkatviswa/ml-compass.git
+cd ml-compass
+npm install          # pulls the MCP SDK
+npm run test:mcp     # optional sanity check — 11 end-to-end checks should pass
+```
+
+**Claude Code (CLI):** register the server from inside the repo folder —
+
+```bash
+claude mcp add ml-compass -- node "$(pwd)/mcp/server.mjs"
+claude mcp list      # should show ml-compass
+```
+
+(add `--scope user` after `add` to make it available in every project, not just this folder.)
+
+**Claude Desktop:** Settings → Developer → Edit Config, and add — with absolute paths, since Desktop launches outside your shell:
+
+```json
+{ "mcpServers": { "ml-compass": {
+    "command": "node",
+    "args": ["/absolute/path/to/ml-compass/mcp/server.mjs"] } } }
+```
+
+Then just ask:
+
+> *Use ml-compass to profile ~/titanic.csv, ask me the questions it needs, then get the bearing for target `Survived`.*
+
+The agent chains `profile_dataset` → `list_questions` → interviews you → `get_bearing`, and walks you through the plan. Troubleshooting (Node PATH issues, session restarts, the works) lives in the repo guide: **[docs/mcp-setup.md](https://github.com/venkatviswa/ml-compass/blob/main/docs/mcp-setup.md)**.
 
 ## Who this is for
 
